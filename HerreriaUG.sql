@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.2
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: db
--- Generation Time: Jun 03, 2025 at 03:58 AM
--- Server version: 9.0.1
--- PHP Version: 8.2.27
+-- Servidor: 127.0.0.1
+-- Tiempo de generación: 05-06-2025 a las 20:26:44
+-- Versión del servidor: 10.4.32-MariaDB
+-- Versión de PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,90 +18,36 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `HerreriaUG`
+-- Base de datos: `herreriaug`
 --
+CREATE DATABASE IF NOT EXISTS `herreriaug` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `herreriaug`;
 
 DELIMITER $$
 --
--- Procedures
+-- Procedimientos
 --
-CREATE PROCEDURE `ActualizarCliente` (IN `p_idCliente` INT, IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_idDomicilio` INT, IN `p_Credito` DECIMAL(10,2), IN `p_Limite` DECIMAL(10,2), IN `p_idDescuento` INT, IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10))   BEGIN
+DROP PROCEDURE IF EXISTS `ActualizarCliente`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ActualizarCliente` (IN `p_idCliente` INT, IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Credito` DECIMAL(10,2), IN `p_Limite` DECIMAL(10,2), IN `p_idDescuento` INT, IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10))   BEGIN
     DECLARE persona_id INT;
+    DECLARE domicilio_id INT;
     DECLARE v_c_CP INT;
 
-    -- Obtener idPersona correspondiente al cliente
-    SELECT idPersona INTO persona_id
-    FROM Clientes
-    WHERE idCliente = p_idCliente;
-
-    -- Obtener c_CP a partir del d_CP
     SELECT c_CP INTO v_c_CP FROM CodigosPostales WHERE d_CP = p_d_CP LIMIT 1;
 
     IF v_c_CP IS NULL THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Código postal no encontrado.';
     END IF;
 
-    -- Actualizar domicilio
-    UPDATE Domicilios
-    SET Calle = p_Calle,
-        Numero = p_Numero,
-        c_CP = v_c_CP
-    WHERE idDomicilio = p_idDomicilio;
+    SELECT idPersona INTO persona_id FROM Clientes WHERE idCliente = p_idCliente;
+    SELECT idDomicilio INTO domicilio_id FROM Personas WHERE idPersona = persona_id;
 
-    -- Actualizar Persona
-    UPDATE Personas
-    SET Nombre = p_Nombre,
-        Paterno = p_Paterno,
-        Materno = p_Materno,
-        Telefono = p_Telefono,
-        Email = p_Email,
-        Edad = p_Edad,
-        Sexo = p_Sexo,
-        idDomicilio = p_idDomicilio
-    WHERE idPersona = persona_id;
-
-    -- Actualizar Cliente
-    UPDATE Clientes
-    SET Credito = p_Credito,
-        Limite = p_Limite,
-        idDescuento = p_idDescuento
-    WHERE idCliente = p_idCliente;
-END$$
-
-CREATE PROCEDURE `ActualizarEmpleado` (IN `p_idEmpleado` INT, IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` CHAR(1), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255))   BEGIN
-    DECLARE persona_id INT;
-    DECLARE domicilio_id INT;
-    DECLARE v_c_CP INT;
-
-    -- Buscar el c_CP correspondiente al código postal legible (d_CP)
-    SELECT c_CP INTO v_c_CP
-    FROM CodigosPostales
-    WHERE d_CP = p_d_CP
-    LIMIT 1;
-
-    -- Validar si se encontró el código postal
-    IF v_c_CP IS NULL THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El código postal proporcionado no existe en CodigosPostales.';
-    END IF;
-
-    -- Obtener el idPersona vinculado al empleado
-    SELECT idPersona INTO persona_id
-    FROM Empleados
-    WHERE idEmpleado = p_idEmpleado;
-
-    -- Obtener idDomicilio actual de la persona
-    SELECT idDomicilio INTO domicilio_id
-    FROM Personas
-    WHERE idPersona = persona_id;
-
-    -- Actualizar domicilio con la nueva calle, número y c_CP
     UPDATE Domicilios
     SET Calle = p_Calle,
         Numero = p_Numero,
         c_CP = v_c_CP
     WHERE idDomicilio = domicilio_id;
 
-    -- Actualizar en Personas
     UPDATE Personas
     SET Nombre = p_Nombre,
         Paterno = p_Paterno,
@@ -113,7 +59,53 @@ CREATE PROCEDURE `ActualizarEmpleado` (IN `p_idEmpleado` INT, IN `p_Nombre` VARC
         idDomicilio = domicilio_id
     WHERE idPersona = persona_id;
 
-    -- Actualizar en Empleados (sin contraseña)
+    UPDATE Clientes
+    SET Credito = p_Credito,
+        Limite = p_Limite,
+        idDescuento = p_idDescuento
+    WHERE idCliente = p_idCliente;
+END$$
+
+DROP PROCEDURE IF EXISTS `ActualizarEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ActualizarEmpleado` (IN `p_idEmpleado` INT, IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` CHAR(1), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255))   BEGIN
+    DECLARE persona_id INT;
+    DECLARE domicilio_id INT;
+    DECLARE v_c_CP INT;
+
+    SELECT c_CP INTO v_c_CP
+    FROM CodigosPostales
+    WHERE d_CP = p_d_CP
+    LIMIT 1;
+
+    IF v_c_CP IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El código postal proporcionado no existe en CodigosPostales.';
+    END IF;
+
+    SELECT idPersona INTO persona_id
+    FROM Empleados
+    WHERE idEmpleado = p_idEmpleado;
+
+    SELECT idDomicilio INTO domicilio_id
+    FROM Personas
+    WHERE idPersona = persona_id;
+
+    UPDATE Domicilios
+    SET Calle = p_Calle,
+        Numero = p_Numero,
+        c_CP = v_c_CP
+    WHERE idDomicilio = domicilio_id;
+
+    UPDATE Personas
+    SET Nombre = p_Nombre,
+        Paterno = p_Paterno,
+        Materno = p_Materno,
+        Telefono = p_Telefono,
+        Email = p_Email,
+        Edad = p_Edad,
+        Sexo = p_Sexo,
+        idDomicilio = domicilio_id
+    WHERE idPersona = persona_id;
+
     UPDATE Empleados
     SET Puesto = p_Puesto,
         RFC = p_RFC,
@@ -122,7 +114,8 @@ CREATE PROCEDURE `ActualizarEmpleado` (IN `p_idEmpleado` INT, IN `p_Nombre` VARC
     WHERE idEmpleado = p_idEmpleado;
 END$$
 
-CREATE PROCEDURE `ActualizarProductoCompleto` (IN `p_idProducto` INT, IN `p_Nombre` VARCHAR(100), IN `p_PrecioCompra` DECIMAL(10,2), IN `p_PrecioVenta` DECIMAL(10,2), IN `p_CodigoBarras` BIGINT, IN `p_Stock` INT, IN `p_idCategoria` INT, IN `p_idProveedor` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `ActualizarProductoCompleto`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ActualizarProductoCompleto` (IN `p_idProducto` INT, IN `p_Nombre` VARCHAR(100), IN `p_PrecioCompra` DECIMAL(10,2), IN `p_PrecioVenta` DECIMAL(10,2), IN `p_CodigoBarras` BIGINT, IN `p_Stock` INT, IN `p_idCategoria` INT, IN `p_idProveedor` INT)   BEGIN
     UPDATE Productos
     SET 
         Nombre = p_Nombre,
@@ -135,19 +128,23 @@ CREATE PROCEDURE `ActualizarProductoCompleto` (IN `p_idProducto` INT, IN `p_Nomb
     WHERE idProducto = p_idProducto;
 END$$
 
-CREATE PROCEDURE `ActualizarProveedor` (IN `p_id_proveedor` INT, IN `p_nombre` VARCHAR(100))   BEGIN
+DROP PROCEDURE IF EXISTS `ActualizarProveedor`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ActualizarProveedor` (IN `p_id_proveedor` INT, IN `p_nombre` VARCHAR(100))   BEGIN
     UPDATE Proveedores
     SET Nombre = p_nombre
     WHERE idProveedor = p_id_proveedor;
 END$$
 
-CREATE PROCEDURE `AgregarAlCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT, IN `p_cantidad` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `AgregarAlCarrito`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AgregarAlCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT, IN `p_cantidad` INT, IN `p_precio_final` DECIMAL(10,2))   BEGIN
     DECLARE v_stock INT DEFAULT 0;
     DECLARE v_cantidad_actual INT DEFAULT 0;
     DECLARE v_cantidad_total INT DEFAULT 0;
 
+    -- Obtener el stock actual del producto
     SELECT stock INTO v_stock FROM Productos WHERE idProducto = p_id_producto;
 
+    -- Obtener la cantidad actual en el carrito para ese producto y empleado (si existe)
     SELECT Cantidad INTO v_cantidad_actual 
     FROM Temp_Ventas 
     WHERE idEmpleado = p_id_empleado AND idProducto = p_id_producto;
@@ -158,16 +155,20 @@ CREATE PROCEDURE `AgregarAlCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` 
 
     SET v_cantidad_total = v_cantidad_actual + p_cantidad;
 
+    -- Validar si la cantidad total no supera el stock
     IF v_cantidad_total <= v_stock THEN
-        INSERT INTO Temp_Ventas (idEmpleado, idProducto, Cantidad)
-        VALUES (p_id_empleado, p_id_producto, p_cantidad)
-        ON DUPLICATE KEY UPDATE Cantidad = Cantidad + p_cantidad;
+        INSERT INTO Temp_Ventas (idEmpleado, idProducto, Cantidad, PrecioFinal)
+        VALUES (p_id_empleado, p_id_producto, p_cantidad, p_precio_final)
+        ON DUPLICATE KEY UPDATE 
+            Cantidad = Cantidad + p_cantidad,
+            PrecioFinal = p_precio_final;
     ELSE
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cantidad solicitada excede el stock disponible.';
     END IF;
 END$$
 
-CREATE PROCEDURE `AgregarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_CP` INT, IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255), IN `p_Contrasena` VARCHAR(255))   BEGIN
+DROP PROCEDURE IF EXISTS `AgregarEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AgregarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_CP` INT, IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255), IN `p_Contrasena` VARCHAR(255))   BEGIN
     DECLARE v_idDomicilio INT;
     DECLARE v_idPersona INT;
 
@@ -217,7 +218,8 @@ CREATE PROCEDURE `AgregarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VA
     COMMIT;
 END$$
 
-CREATE PROCEDURE `AgregarProducto` (IN `p_Nombre` VARCHAR(100), IN `p_PrecioCompra` DECIMAL(10,2), IN `p_PrecioVenta` DECIMAL(10,2), IN `p_CodigoBarras` BIGINT, IN `p_Stock` INT, IN `p_idCategoria` INT, IN `p_idProveedor` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `AgregarProducto`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AgregarProducto` (IN `p_Nombre` VARCHAR(100), IN `p_PrecioCompra` DECIMAL(10,2), IN `p_PrecioVenta` DECIMAL(10,2), IN `p_CodigoBarras` BIGINT, IN `p_Stock` INT, IN `p_idCategoria` INT, IN `p_idProveedor` INT)   BEGIN
     INSERT INTO Productos (
         Nombre, PrecioCompra, PrecioVenta, CodigoBarras,
         Stock, Estado, idCategoria, idProveedor
@@ -228,86 +230,319 @@ CREATE PROCEDURE `AgregarProducto` (IN `p_Nombre` VARCHAR(100), IN `p_PrecioComp
     );
 END$$
 
-CREATE PROCEDURE `AgregarProveedor` (IN `p_nombre` VARCHAR(100))   BEGIN
+DROP PROCEDURE IF EXISTS `AgregarProveedor`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AgregarProveedor` (IN `p_nombre` VARCHAR(100))   BEGIN
     INSERT INTO Proveedores (Nombre)
     VALUES (p_nombre);
 END$$
 
-CREATE PROCEDURE `BuscarProductoPorCodigoBarras` (IN `p_codigo_barras` VARCHAR(50))   BEGIN
+DROP PROCEDURE IF EXISTS `BuscarProductoPorCodigoBarras`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `BuscarProductoPorCodigoBarras` (IN `p_codigo_barras` VARCHAR(50))   BEGIN
     SELECT * FROM Productos
     WHERE CodigoBarras = p_codigo_barras AND Estado = 'Activo';
 END$$
 
-CREATE PROCEDURE `BuscarProductoPorNombre` (IN `p_nombre` VARCHAR(100))   BEGIN
+DROP PROCEDURE IF EXISTS `BuscarProductoPorNombre`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `BuscarProductoPorNombre` (IN `p_nombre` VARCHAR(100))   BEGIN
     SELECT * FROM Productos
     WHERE Nombre = p_nombre AND Estado = 'Activo';
 END$$
 
-CREATE PROCEDURE `CambiaEstatusPedido` (IN `p_id_pedido` INT, IN `p_estatus` ENUM('Pendiente','Aceptado','Enviado','Cancelado'))   BEGIN
+DROP PROCEDURE IF EXISTS `CalcularPrecioConDescuento`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CalcularPrecioConDescuento` (IN `p_idProducto` INT, IN `p_tipoDescuento` VARCHAR(20), OUT `p_precioFinal` DECIMAL(10,2))   BEGIN
+    DECLARE v_nombreCategoria VARCHAR(50);
+    DECLARE v_precioVenta DECIMAL(10,2);
+    DECLARE v_factorDescuento DECIMAL(10,4);
+
+    -- Obtener nombre de la categoría y precio de venta del producto
+    SELECT c.nombre, p.PrecioVenta
+    INTO v_nombreCategoria, v_precioVenta
+    FROM Productos p
+    JOIN Categorias c ON p.idCategoria = c.idCategoria
+    WHERE p.idProducto = p_idProducto;
+
+    -- Asignar el factor de descuento según la categoría y tipo de descuento
+    SET v_factorDescuento = CASE v_nombreCategoria
+        WHEN 'Monten' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.9980
+            WHEN 'Herrero3' THEN 1.3972
+            WHEN 'Herrero4' THEN 1.7964
+            WHEN 'Mayoreo1' THEN 2.3952
+            WHEN 'Mayoreo2' THEN 2.7944
+            ELSE 0
+        END
+        WHEN 'PTR' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.7905
+            WHEN 'Herrero3' THEN 1.1858
+            WHEN 'Herrero4' THEN 1.5810
+            WHEN 'Mayoreo1' THEN 1.9763
+            WHEN 'Mayoreo2' THEN 2.7668
+            ELSE 0
+        END
+        WHEN 'Tubo Ced 30' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.8889
+            WHEN 'Herrero3' THEN 1.3333
+            WHEN 'Herrero4' THEN 1.7778
+            WHEN 'Mayoreo1' THEN 2.2222
+            WHEN 'Mayoreo2' THEN 2.7273
+            ELSE 0
+        END
+        WHEN 'Tubo Ced 40' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.9091
+            WHEN 'Herrero3' THEN 1.3636
+            WHEN 'Herrero4' THEN 1.8182
+            WHEN 'Mayoreo1' THEN 2.2727
+            WHEN 'Mayoreo2' THEN 2.7273
+            ELSE 0
+        END
+        WHEN 'Tubo GalV' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.8969
+            WHEN 'Herrero3' THEN 1.3453
+            WHEN 'Herrero4' THEN 1.7937
+            WHEN 'Mayoreo1' THEN 2.2422
+            WHEN 'Mayoreo2' THEN 2.6906
+            ELSE 0
+        END
+        WHEN 'Tubular' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.6390
+            WHEN 'Herrero3' THEN 1.2780
+            WHEN 'Herrero4' THEN 1.5974
+            WHEN 'Mayoreo1' THEN 2.2364
+            WHEN 'Mayoreo2' THEN 2.5559
+            ELSE 0
+        END
+        WHEN 'T. Industrial' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.9346
+            WHEN 'Herrero3' THEN 1.8692
+            WHEN 'Herrero4' THEN 1.8692
+            WHEN 'Mayoreo1' THEN 2.8037
+            WHEN 'Mayoreo2' THEN 2.8037
+            ELSE 0
+        END
+        WHEN 'Moflero' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.6993
+            WHEN 'Herrero3' THEN 1.3986
+            WHEN 'Herrero4' THEN 1.3986
+            WHEN 'Mayoreo1' THEN 2.0979
+            WHEN 'Mayoreo2' THEN 2.7972
+            ELSE 0
+        END
+        WHEN 'Tableros' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 1.1321
+            WHEN 'Herrero3' THEN 1.5094
+            WHEN 'Herrero4' THEN 1.8868
+            WHEN 'Mayoreo1' THEN 2.2642
+            WHEN 'Mayoreo2' THEN 2.6415
+            ELSE 0
+        END
+        WHEN 'Tub. C 20' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.8368
+            WHEN 'Herrero3' THEN 1.2552
+            WHEN 'Herrero4' THEN 1.6736
+            WHEN 'Mayoreo1' THEN 2.0921
+            WHEN 'Mayoreo2' THEN 2.5105
+            ELSE 0
+        END
+        WHEN 'Base Tinaco' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 1.3493
+            WHEN 'Herrero3' THEN 2.2069
+            WHEN 'Herrero4' THEN 2.8756
+            WHEN 'Mayoreo1' THEN 3.5423
+            WHEN 'Mayoreo2' THEN 4.2436
+            ELSE 0
+        END
+        WHEN 'Tubular Zintro' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.8242
+            WHEN 'Herrero3' THEN 1.3736
+            WHEN 'Herrero4' THEN 1.9231
+            WHEN 'Mayoreo1' THEN 2.1978
+            WHEN 'Mayoreo2' THEN 2.7473
+            ELSE 0
+        END
+        WHEN 'Angulo' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.5618
+            WHEN 'Herrero3' THEN 1.6854
+            WHEN 'Herrero4' THEN 2.2472
+            WHEN 'Mayoreo1' THEN 2.8090
+            WHEN 'Mayoreo2' THEN 3.3708
+            ELSE 0
+        END
+        WHEN 'Angulo Lig' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.6536
+            WHEN 'Herrero3' THEN 1.9608
+            WHEN 'Herrero4' THEN 2.6144
+            WHEN 'Mayoreo1' THEN 3.2680
+            WHEN 'Mayoreo2' THEN 3.0769
+            ELSE 0
+        END
+        WHEN 'Cuadrado' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.7692
+            WHEN 'Herrero3' THEN 1.5385
+            WHEN 'Herrero4' THEN 2.3077
+            WHEN 'Mayoreo1' THEN 3.0769
+            WHEN 'Mayoreo2' THEN 3.0769
+            ELSE 0
+        END
+        WHEN 'Redondo' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.0001
+            WHEN 'Herrero3' THEN 3.8462
+            WHEN 'Herrero4' THEN 3.8462
+            WHEN 'Mayoreo1' THEN 3.8462
+            WHEN 'Mayoreo2' THEN 3.8462
+            ELSE 0
+        END
+        WHEN 'Torcido' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 1.2195
+            WHEN 'Herrero3' THEN 1.8293
+            WHEN 'Herrero4' THEN 2.4390
+            WHEN 'Mayoreo1' THEN 3.0488
+            WHEN 'Mayoreo2' THEN 3.6585
+            ELSE 0
+        END
+        WHEN 'Solera' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.0001
+            WHEN 'Herrero3' THEN 1.4706
+            WHEN 'Herrero4' THEN 2.9412
+            WHEN 'Mayoreo1' THEN 2.9412
+            WHEN 'Mayoreo2' THEN 2.9412
+            ELSE 0
+        END
+        WHEN 'Tee' THEN CASE p_tipoDescuento
+            WHEN 'Herrero2' THEN 0.7576
+            WHEN 'Herrero3' THEN 1.5152
+            WHEN 'Herrero4' THEN 2.6515
+            WHEN 'Mayoreo1' THEN 3.0303
+            WHEN 'Mayoreo2' THEN 4.4091
+            ELSE 0
+        END
+        ELSE 0
+    END;
+
+    -- Calcular el precio final con descuento
+    SET p_precioFinal = v_precioVenta - (v_precioVenta * v_factorDescuento / 100);
+END$$
+
+DROP PROCEDURE IF EXISTS `CambiaEstatusPedido`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CambiaEstatusPedido` (IN `p_id_pedido` INT, IN `p_estatus` ENUM('Pendiente','Aceptado','Enviado','Cancelado'))   BEGIN
     UPDATE Pedidos
     SET Estatus = p_estatus
     WHERE idPedido = p_id_pedido;
 END$$
 
-CREATE PROCEDURE `CambiarPedidoAAceptado` (IN `p_id_pedido` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `CambiarPedidoAAceptado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CambiarPedidoAAceptado` (IN `p_id_pedido` INT)   BEGIN
     UPDATE Pedidos
     SET Estatus = 'Aceptado'
     WHERE idPedido = p_id_pedido;
 END$$
 
-CREATE PROCEDURE `CambiarPedidoACancelado` (IN `p_id_pedido` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `CambiarPedidoACancelado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CambiarPedidoACancelado` (IN `p_id_pedido` INT)   BEGIN
     UPDATE Pedidos
     SET Estatus = 'Cancelado'
     WHERE idPedido = p_id_pedido;
 END$$
 
-CREATE PROCEDURE `CambiarPedidoAEnviado` (IN `p_id_pedido` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `CambiarPedidoAEnviado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CambiarPedidoAEnviado` (IN `p_id_pedido` INT)   BEGIN
     UPDATE Pedidos
     SET Estatus = 'Enviado'
     WHERE idPedido = p_id_pedido;
 END$$
 
-CREATE PROCEDURE `DevolverProductoIndividual` (IN `p_idVenta` INT, IN `p_idProducto` INT, IN `p_cantidad` INT)   BEGIN
-    DECLARE cantidadVendida INT;
+DROP PROCEDURE IF EXISTS `DevolverProductoIndividual`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DevolverProductoIndividual` (IN `p_idVenta` INT, IN `p_idProducto` INT, IN `p_cantidad` INT)   BEGIN
+    DECLARE v_cantidadVendida INT DEFAULT 0;
+    DECLARE v_totalProducto DECIMAL(10,2);
+    DECLARE v_ivaProducto DECIMAL(10,2);
+    DECLARE v_iepsProducto DECIMAL(10,2);
+    DECLARE v_cantidadActualVentas INT DEFAULT 0;
 
-    -- Verificar cuántas piezas se vendieron en la venta original
-    SELECT Cantidad INTO cantidadVendida
+    -- Validar existencia del producto en la venta y obtener detalles
+    SELECT Cantidad, Total, IVA, IEPS
+    INTO v_cantidadVendida, v_totalProducto, v_ivaProducto, v_iepsProducto
     FROM DetalleVenta
     WHERE idVenta = p_idVenta AND idProducto = p_idProducto;
 
-    -- Validar que la cantidad a devolver no sea mayor a la vendida
-    IF cantidadVendida IS NULL THEN
+    -- Validaciones
+    IF v_cantidadVendida IS NULL THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El producto no fue encontrado en la venta.';
-    ELSEIF p_cantidad > cantidadVendida THEN
+    ELSEIF p_cantidad <= 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cantidad a devolver debe ser mayor que cero.';
+    ELSEIF p_cantidad > v_cantidadVendida THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se puede devolver más de lo vendido.';
     ELSE
-        -- Restar la cantidad devuelta de la venta
+        -- Actualizar la cantidad en DetalleVenta
         UPDATE DetalleVenta
-        SET Cantidad = Cantidad - p_cantidad
+        SET Cantidad = Cantidad - p_cantidad,
+            Total = Total - (v_totalProducto / v_cantidadVendida) * p_cantidad,
+            IVA = IVA - (v_ivaProducto / v_cantidadVendida) * p_cantidad,
+            IEPS = IEPS - (v_iepsProducto / v_cantidadVendida) * p_cantidad
         WHERE idVenta = p_idVenta AND idProducto = p_idProducto;
 
-        -- Si la cantidad en DetalleVenta queda en 0, eliminar el registro
+        -- Eliminar el detalle si la cantidad queda en 0
         DELETE FROM DetalleVenta
         WHERE idVenta = p_idVenta AND idProducto = p_idProducto AND Cantidad = 0;
 
-        -- Devolver al inventario
+        -- Devolver productos al inventario
         UPDATE Productos
-        SET CantidadInventario = CantidadInventario + p_cantidad
+        SET stock = stock + p_cantidad
         WHERE idProducto = p_idProducto;
 
-        -- Registrar en tabla de devoluciones (opcional)
-        INSERT INTO Devoluciones (idVenta, idProducto, Cantidad, FechaDevolucion)
-        VALUES (p_idVenta, p_idProducto, p_cantidad, NOW());
+        -- Recalcular cantidad total de productos en la venta
+        SELECT IFNULL(SUM(Cantidad),0)
+        INTO v_cantidadActualVentas
+        FROM DetalleVenta
+        WHERE idVenta = p_idVenta;
+
+        -- Actualizar la cantidad total de productos en Ventas restando la cantidad devuelta
+        UPDATE Ventas
+        SET CantidadProductos = v_cantidadActualVentas
+        WHERE idVenta = p_idVenta;
+
+        -- Recalcular totales de la venta basados en detalles actualizados
+        UPDATE Ventas v
+        JOIN (
+            SELECT 
+                idVenta,
+                IFNULL(SUM(Total), 0) AS nuevo_total,
+                IFNULL(SUM(IVA), 0) AS nuevo_iva,
+                IFNULL(SUM(IEPS), 0) AS nuevo_ieps
+            FROM DetalleVenta
+            WHERE idVenta = p_idVenta
+            GROUP BY idVenta
+        ) dv ON v.idVenta = dv.idVenta
+        SET 
+            v.Subtotal = dv.nuevo_total,
+            v.IVA = dv.nuevo_iva,
+            v.IEPS = dv.nuevo_ieps,
+            v.Monto = dv.nuevo_total + dv.nuevo_iva + dv.nuevo_ieps;
+
+        -- Si ya no quedan productos en la venta, actualizar el estatus y totales a cero
+        IF v_cantidadActualVentas = 0 THEN
+            UPDATE Ventas
+            SET Estatus = 'Cancelada',
+                Subtotal = 0,
+                IVA = 0,
+                IEPS = 0,
+                Monto = 0,
+                CantidadProductos = 0
+            WHERE idVenta = p_idVenta;
+        END IF;
     END IF;
 END$$
 
-CREATE PROCEDURE `DevolverVentaCompleta` (IN `p_idVenta` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `DevolverVentaCompleta`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `DevolverVentaCompleta` (IN `p_idVenta` INT)   BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE v_idProducto INT;
     DECLARE v_cantidad INT;
 
+    -- Cursor para recorrer los productos de la venta
     DECLARE cur CURSOR FOR
         SELECT idProducto, Cantidad FROM DetalleVenta WHERE idVenta = p_idVenta;
+
+    -- Manejador cuando se terminan los datos del cursor
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 
     OPEN cur;
@@ -318,7 +553,7 @@ CREATE PROCEDURE `DevolverVentaCompleta` (IN `p_idVenta` INT)   BEGIN
             LEAVE read_loop;
         END IF;
 
-        -- Actualizar stock para cada producto de la venta
+        -- Devolver la cantidad al stock del producto
         UPDATE Productos
         SET stock = stock + v_cantidad
         WHERE idProducto = v_idProducto;
@@ -326,16 +561,22 @@ CREATE PROCEDURE `DevolverVentaCompleta` (IN `p_idVenta` INT)   BEGIN
 
     CLOSE cur;
 
-    -- Eliminar todos los detalles de la venta
+    -- Eliminar los detalles de la venta (productos vendidos)
     DELETE FROM DetalleVenta WHERE idVenta = p_idVenta;
 
-    -- Marcar la venta como devuelta en lugar de eliminarla
+    -- Actualizar la venta: marcar como cancelada y resetear valores
     UPDATE Ventas
-    SET Estatus = 'Devuelta'
+    SET Estatus = 'Cancelada',
+        Monto = 0,
+        Subtotal = 0,
+        IVA = 0,
+        IEPS = 0,
+        CantidadProductos = 0
     WHERE idVenta = p_idVenta;
 END$$
 
-CREATE PROCEDURE `EliminarCliente` (IN `p_idCliente` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `EliminarCliente`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `EliminarCliente` (IN `p_idCliente` INT)   BEGIN
     DECLARE persona_id INT;
 
     SELECT idPersona INTO persona_id
@@ -348,7 +589,8 @@ CREATE PROCEDURE `EliminarCliente` (IN `p_idCliente` INT)   BEGIN
     WHERE idPersona = persona_id;
 END$$
 
-CREATE PROCEDURE `EliminarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `EliminarEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `EliminarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
     DECLARE persona_id INT;
 
     SELECT idPersona INTO persona_id
@@ -360,19 +602,22 @@ CREATE PROCEDURE `EliminarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
     WHERE idPersona = persona_id;
 END$$
 
-CREATE PROCEDURE `EliminarProducto` (IN `p_idProducto` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `EliminarProducto`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `EliminarProducto` (IN `p_idProducto` INT)   BEGIN
     UPDATE Productos
     SET Estado = 'Inactivo'
     WHERE idProducto = p_idProducto;
 END$$
 
-CREATE PROCEDURE `EliminarProveedor` (IN `p_id_proveedor` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `EliminarProveedor`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `EliminarProveedor` (IN `p_id_proveedor` INT)   BEGIN
     UPDATE Proveedores
     SET Estado = 'Inactivo'
     WHERE idProveedor = p_id_proveedor;
 END$$
 
-CREATE PROCEDURE `ProcesarUnaVenta` (IN `p_id_empleado` INT, IN `p_id_cliente` INT, IN `p_tipo_pago` ENUM('Contado','Cheque','Transferencia','Credito'), IN `p_pago` DECIMAL(10,2))   BEGIN
+DROP PROCEDURE IF EXISTS `ProcesarUnaVenta`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ProcesarUnaVenta` (IN `p_id_empleado` INT, IN `p_id_cliente` INT, IN `p_tipo_pago` ENUM('Contado','Cheque','Transferencia','Credito'), IN `p_pago` DECIMAL(10,2))   BEGIN
     DECLARE v_subtotal DECIMAL(10,2);
     DECLARE v_iva DECIMAL(10,2);
     DECLARE v_ieps DECIMAL(10,2);
@@ -458,7 +703,8 @@ CREATE PROCEDURE `ProcesarUnaVenta` (IN `p_id_empleado` INT, IN `p_id_cliente` I
     VALUES (v_id_venta, v_monto, 0);
 END$$
 
-CREATE PROCEDURE `ProcesarVentaDePedido` (IN `p_id_pedido` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `ProcesarVentaDePedido`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ProcesarVentaDePedido` (IN `p_id_pedido` INT)   BEGIN
     DECLARE v_id_empleado INT;
     DECLARE v_id_cliente INT;
     DECLARE v_tipo_pago ENUM('Contado', 'Cheque', 'Transferencia', 'Credito');
@@ -546,7 +792,8 @@ CREATE PROCEDURE `ProcesarVentaDePedido` (IN `p_id_pedido` INT)   BEGIN
 
 END$$
 
-CREATE PROCEDURE `RecuperarCliente` (IN `p_idCliente` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `RecuperarCliente`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RecuperarCliente` (IN `p_idCliente` INT)   BEGIN
     DECLARE persona_id INT;
 
     SELECT idPersona INTO persona_id
@@ -559,7 +806,8 @@ CREATE PROCEDURE `RecuperarCliente` (IN `p_idCliente` INT)   BEGIN
     WHERE idPersona = persona_id;
 END$$
 
-CREATE PROCEDURE `RecuperarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `RecuperarEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RecuperarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
     DECLARE persona_id INT;
 
     SELECT idPersona INTO persona_id
@@ -571,13 +819,15 @@ CREATE PROCEDURE `RecuperarEmpleado` (IN `p_idEmpleado` INT)   BEGIN
     WHERE idPersona = persona_id;
 END$$
 
-CREATE PROCEDURE `RecuperarProducto` (IN `p_idProducto` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `RecuperarProducto`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RecuperarProducto` (IN `p_idProducto` INT)   BEGIN
     UPDATE Productos
     SET Estado = 'Activo'
     WHERE idProducto = p_idProducto;
 END$$
 
-CREATE PROCEDURE `RegistrarCliente` (IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Credito` DECIMAL(10,2), IN `p_Limite` DECIMAL(10,2), IN `p_idDescuento` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `RegistrarCliente`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RegistrarCliente` (IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Credito` DECIMAL(10,2), IN `p_Limite` DECIMAL(10,2), IN `p_idDescuento` INT)   BEGIN
     DECLARE v_idDomicilio INT;
     DECLARE v_idPersona INT;
     DECLARE v_c_CP INT;
@@ -620,7 +870,8 @@ CREATE PROCEDURE `RegistrarCliente` (IN `p_Calle` VARCHAR(50), IN `p_Numero` INT
     COMMIT;
 END$$
 
-CREATE PROCEDURE `RegistrarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255), IN `p_Contraseña` VARCHAR(255))   BEGIN
+DROP PROCEDURE IF EXISTS `RegistrarEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RegistrarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` VARCHAR(50), IN `p_Materno` VARCHAR(50), IN `p_Telefono` VARCHAR(10), IN `p_Email` VARCHAR(50), IN `p_Edad` SMALLINT, IN `p_Sexo` ENUM('H','M'), IN `p_Calle` VARCHAR(50), IN `p_Numero` INT, IN `p_d_CP` VARCHAR(10), IN `p_Puesto` ENUM('Administrador','Cajero','Agente de Venta'), IN `p_RFC` VARCHAR(13), IN `p_NumeroSeguroSocial` VARCHAR(11), IN `p_Usuario` VARCHAR(255), IN `p_Contraseña` VARCHAR(255))   BEGIN
     DECLARE v_idDomicilio INT;
     DECLARE v_idPersona INT;
     DECLARE v_c_CP INT;
@@ -650,7 +901,8 @@ CREATE PROCEDURE `RegistrarEmpleado` (IN `p_Nombre` VARCHAR(50), IN `p_Paterno` 
     VALUES (p_Puesto, p_RFC, p_NumeroSeguroSocial, p_Usuario, p_Contraseña, v_idPersona);
 END$$
 
-CREATE PROCEDURE `RegistrarPedido` (IN `p_id_cliente` INT, IN `p_id_empleado` INT, IN `p_fecha` DATE)   BEGIN
+DROP PROCEDURE IF EXISTS `RegistrarPedido`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RegistrarPedido` (IN `p_id_cliente` INT, IN `p_id_empleado` INT, IN `p_fecha` DATE)   BEGIN
     DECLARE v_id_pedido INT;
 
     START TRANSACTION;
@@ -678,7 +930,8 @@ CREATE PROCEDURE `RegistrarPedido` (IN `p_id_cliente` INT, IN `p_id_empleado` IN
     COMMIT;
 END$$
 
-CREATE PROCEDURE `RestarCantidadProductoCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `RestarCantidadProductoCarrito`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RestarCantidadProductoCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT)   BEGIN
     DECLARE v_cantidad INT;
 
     SELECT Cantidad INTO v_cantidad FROM Temp_Ventas WHERE idEmpleado = p_id_empleado AND idProducto = p_id_producto;
@@ -693,19 +946,21 @@ CREATE PROCEDURE `RestarCantidadProductoCarrito` (IN `p_id_empleado` INT, IN `p_
     END IF;
 END$$
 
-CREATE PROCEDURE `sp_ObtenerCarritoPorEmpleado` (IN `empleadoId` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `sp_ObtenerCarritoPorEmpleado`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ObtenerCarritoPorEmpleado` (IN `empleadoId` INT)   BEGIN
     SELECT 
         tv.idProducto,
         p.Nombre,
         tv.Cantidad,
-        p.PrecioVenta,
-        (p.PrecioVenta * tv.Cantidad) AS Total
+        tv.PrecioFinal AS PrecioVenta,
+        (tv.PrecioFinal * tv.Cantidad) AS Total
     FROM Temp_Ventas tv
     INNER JOIN Productos p ON tv.idProducto = p.idProducto
     WHERE tv.idEmpleado = empleadoId;
 END$$
 
-CREATE PROCEDURE `SumarCantidadProductoCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT)   BEGIN
+DROP PROCEDURE IF EXISTS `SumarCantidadProductoCarrito`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `SumarCantidadProductoCarrito` (IN `p_id_empleado` INT, IN `p_id_producto` INT)   BEGIN
     DECLARE v_stock INT;
     DECLARE v_cantidad INT;
 
@@ -724,23 +979,24 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Asentamiento`
+-- Estructura de tabla para la tabla `asentamiento`
 --
 
-CREATE TABLE `Asentamiento` (
-  `c_tipo_asenta` int NOT NULL,
+DROP TABLE IF EXISTS `asentamiento`;
+CREATE TABLE `asentamiento` (
+  `c_tipo_asenta` int(11) NOT NULL,
   `d_asenta` varchar(100) DEFAULT NULL,
   `d_tipo_asenta` varchar(100) DEFAULT NULL,
-  `id_asenta_cpcons` int DEFAULT NULL,
+  `id_asenta_cpcons` int(11) DEFAULT NULL,
   `d_zona` varchar(100) DEFAULT NULL,
-  `c_mnpio` int NOT NULL
+  `c_mnpio` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Asentamiento`
+-- Volcado de datos para la tabla `asentamiento`
 --
 
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (1, 'Colonia Centro', 'Colonia', 1, 'Urbana', 1),
 (2, 'Guanajuato Centro', 'Colonia', 1, 'Urbano', 13),
 (3, 'Alameda', 'Colonia', 4455, 'Urbano', 13),
@@ -1613,7 +1869,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (870, 'La Loma', 'Ejido', 9057, 'Rural', 37),
 (871, 'La Negrita', 'Ejido', 9061, 'Rural', 37),
 (872, 'La Pradera', 'Colonia', 9067, 'Rural', 37);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (873, 'La Pradera (José Ponce)', 'Ejido', 9068, 'Rural', 37),
 (874, 'La Purísima', 'Ejido', 9072, 'Rural', 37),
 (875, 'La Virgen', 'Colonia', 9074, 'Rural', 37),
@@ -2499,7 +2755,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (1755, 'Tutitlán', 'Ranchería', 362, 'Rural', 19),
 (1756, 'La Mora', 'Ranchería', 5479, 'Rural', 19),
 (1757, 'Buenavista de Vargas', 'Finca', 9, 'Rural', 19);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (1758, 'Carrizo de Godínez', 'Ranchería', 14, 'Rural', 19),
 (1759, 'Chupadero', 'Granja', 20, 'Rural', 19),
 (1760, 'El Capulín Chico', 'Ranchería', 29, 'Rural', 19),
@@ -3357,7 +3613,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (2612, 'La Esperancita', 'Ranchería', 6856, 'Rural', 15),
 (2613, 'Rancho Nuevo de Yóstiro', 'Ranchería', 6876, 'Rural', 15),
 (2614, 'San Luis del Jánamo', 'Ranchería', 6890, 'Rural', 15);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (2615, 'San Miguel del Brete', 'Ranchería', 6893, 'Rural', 15),
 (2616, 'Tinaja de Bernales', 'Ranchería', 6901, 'Rural', 15),
 (2617, 'Tinajita de Crucitas', 'Ranchería', 6902, 'Rural', 15),
@@ -4235,7 +4491,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (3489, 'El Saucillo', 'Ranchería', 944, 'Rural', 10),
 (3490, 'La Sabina', 'Ranchería', 945, 'Rural', 10),
 (3491, 'La Batalla', 'Ranchería', 5280, 'Rural', 10);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (3492, 'El Rincón', 'Ranchería', 5562, 'Rural', 10),
 (3493, 'El Roble', 'Ranchería', 5564, 'Rural', 10),
 (3494, 'El Rodeo', 'Ranchería', 5565, 'Rural', 10),
@@ -5076,7 +5332,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (4329, 'Jardines de San Pedro', 'Fraccionamiento', 1389, 'Urbano', 18),
 (4330, 'Villa Verde', 'Fraccionamiento', 1391, 'Urbano', 18),
 (4331, 'Eyupol', 'Colonia', 1398, 'Urbano', 18);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (4332, 'La Pechuga', 'Colonia', 1399, 'Urbano', 18),
 (4333, 'Versalles', 'Conjunto habitacional', 1402, 'Urbano', 18),
 (4334, 'Villas de Guadalupe', 'Fraccionamiento', 179, 'Urbano', 18),
@@ -5923,7 +6179,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (5175, 'San Isidro (La Virgencita)', 'Colonia', 203, 'Urbano', 18),
 (5176, 'San Pedro del Monte (La Huizachera)', 'Colonia', 1849, 'Rural', 18),
 (5177, 'San Judas', 'Colonia', 1860, 'Rural', 18);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (5178, 'Rústico San Pedro', 'Colonia', 3440, 'Rural', 18),
 (5179, 'Latinoamericana', 'Colonia', 3441, 'Rural', 18),
 (5180, 'La Esmeralda', 'Colonia', 3443, 'Rural', 18),
@@ -6799,7 +7055,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (6050, 'San José de Gracia (Palo Dulce)', 'Ranchería', 7387, 'Rural', 33),
 (6051, 'San José del Llano', 'Ranchería', 7391, 'Rural', 33),
 (6052, 'San Lucas', 'Pueblo', 7397, 'Rural', 33);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (6053, 'Santa Teresita', 'Rancho', 7409, 'Rural', 33),
 (6054, 'Tres Palmas', 'Pueblo', 7418, 'Rural', 33),
 (6055, 'El Carmen', 'Ranchería', 2071, 'Rural', 33),
@@ -7674,7 +7930,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (6924, 'La Esperanza', 'Ranchería', 2221, 'Rural', 43),
 (6925, 'Malinto (San Juan Malinto)', 'Ranchería', 2222, 'Rural', 43),
 (6926, 'Arroyo Hondo', 'Granja', 3, 'Rural', 43);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (6927, 'Cañada de Higueras', 'Ranchería', 6, 'Rural', 43),
 (6928, 'Cañada de Trancas', 'Ranchería', 7, 'Rural', 43),
 (6929, 'El Carrizo', 'Ranchería', 12, 'Rural', 43),
@@ -8554,7 +8810,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (7803, 'Segunda Fracción de Crespo', 'Colonia', 99, 'Urbano', 6),
 (7804, 'San Isidro de Elguera', 'Ejido', 2548, 'Rural', 6),
 (7805, 'Yustis (San José de Yustis)', 'Ejido', 2551, 'Rural', 6);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (7806, 'La Esperanza de Yustis (Los Martínez)', 'Colonia', 6603, 'Rural', 6),
 (7807, 'Álamo Country Club', 'Fraccionamiento', 4441, 'Urbano', 6),
 (7808, 'Las Palmas', 'Colonia', 17, 'Rural', 6),
@@ -9434,7 +9690,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (8682, 'San Agustín', 'Ranchería', 7791, 'Rural', 42),
 (8683, 'San Juanito de San Guillermo (San Martín)', 'Ranchería', 7798, 'Rural', 42),
 (8684, 'San Rafael de Sauz', 'Ranchería', 7799, 'Rural', 42);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (8685, 'Cerro Prieto del Carmen', 'Ejido', 2781, 'Rural', 42),
 (8686, 'Los Patios', 'Ejido', 2784, 'Rural', 42),
 (8687, 'Sauz de Purísima', 'Ejido', 2785, 'Rural', 42),
@@ -10309,7 +10565,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (9556, 'Los Fierros', 'Ranchería', 3106, 'Rural', 39),
 (9557, 'San Nicolás de La Condesa', 'Ejido', 3107, 'Rural', 39),
 (9558, 'El Rojo (El Colorado)', 'Ranchería', 2, 'Rural', 39);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (9559, 'Parácuaro', 'Pueblo', 3110, 'Rural', 2),
 (9560, 'San Pedro', 'Colonia', 5514, 'Urbano', 2),
 (9561, 'San Francisco Parácuaro', 'Colonia', 5515, 'Urbano', 2),
@@ -11192,7 +11448,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (10438, 'Juárez', 'Colonia', 3720, 'Urbano', 25),
 (10439, 'Campo Verde 2da. Sección', 'Fraccionamiento', 5220, 'Urbano', 25),
 (10440, 'El Paraíso', 'Fraccionamiento', 5221, 'Urbano', 25);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (10441, 'Privada de Reyes', 'Fraccionamiento', 5222, 'Urbano', 25),
 (10442, 'Los Gómez', 'Colonia', 3714, 'Urbano', 25),
 (10443, 'Bosques de San Rafael II', 'Fraccionamiento', 5223, 'Urbano', 25),
@@ -12030,7 +12286,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (11275, 'El Venadito', 'Ejido', 8969, 'Rural', 37),
 (11276, 'Fracción la Granja', 'Ejido', 8981, 'Rural', 37),
 (11277, 'Granja de Guadalupe', 'Granja', 9000, 'Rural', 37);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (11278, 'Granja las Margaritas', 'Granja', 9011, 'Rural', 37),
 (11279, 'Isla la Asunción', 'Ejido', 9027, 'Rural', 37),
 (11280, 'Jesús María', 'Ejido', 9029, 'Rural', 37),
@@ -12902,7 +13158,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (12146, 'Los Presidentes', 'Colonia', 399, 'Urbano', 15),
 (12147, 'Miguel Hidalgo', 'Colonia', 400, 'Urbano', 15),
 (12148, 'San Antonio', 'Colonia', 401, 'Urbano', 15);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (12149, 'El Zapote del Milagro', 'Colonia', 1, 'Urbano', 15),
 (12150, 'Villa de Lourdes', 'Fraccionamiento', 16, 'Urbano', 15),
 (12151, 'San Javier', 'Fraccionamiento', 24, 'Urbano', 15),
@@ -13740,7 +13996,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (12983, 'Santiaguillo de Flores', 'Colonia', 5449, 'Rural', 26),
 (12984, 'Cerro Blanco de Mancera', 'Colonia', 6640, 'Rural', 26),
 (12985, 'San Juan de Razos', 'Ejido', 6648, 'Rural', 26);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (12986, 'Granja María Antonieta (Granja los Soto)', 'Ranchería', 6687, 'Rural', 26),
 (12987, 'La Magdalena', 'Ranchería', 6715, 'Rural', 26),
 (12988, 'Los Sotos', 'Colonia', 6743, 'Rural', 26),
@@ -14605,7 +14861,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (13847, 'Granja Fátima', 'Granja', 6393, 'Rural', 1),
 (13848, 'Hursh (El Vergel)', 'Ranchería', 6398, 'Rural', 1),
 (13849, 'La Abandonada (El Gallito)', 'Ranchería', 6401, 'Rural', 1);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (13850, 'La Candelaria (Cristo Rey)', 'Ranchería', 6403, 'Rural', 1),
 (13851, 'La Casa Blanca (El Álamo)', 'Ranchería', 6404, 'Rural', 1),
 (13852, 'La Cinta', 'Ranchería', 6408, 'Rural', 1),
@@ -15426,7 +15682,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (14667, 'Ampliación San Francisco', 'Colonia', 4547, 'Urbano', 18),
 (14668, 'Bosques (Misael Núñez)', 'Colonia', 4608, 'Urbano', 18),
 (14669, 'Las Villas', 'Fraccionamiento', 4610, 'Urbano', 18);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (14670, 'Villas de San Juan', 'Fraccionamiento', 4612, 'Urbano', 18),
 (14671, 'Paseos del Molino', 'Fraccionamiento', 4680, 'Urbano', 18),
 (14672, 'Jardines de San Juan', 'Fraccionamiento', 4769, 'Urbano', 18),
@@ -16262,7 +16518,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (15502, 'Los Naranjos', 'Ranchería', 1870, 'Rural', 18),
 (15503, 'Ibarrilla', 'Colonia', 1211, 'Urbano', 18),
 (15504, 'Lomas de la Loza', 'Colonia', 186, 'Urbano', 18);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (15505, 'Camino a los Pirules', 'Colonia', 216, 'Rural', 18),
 (15506, 'Álvaro Obregón (Santa Ana del Conde)', 'Pueblo', 1877, 'Rural', 18),
 (15507, 'Los López', 'Colonia', 1882, 'Rural', 18),
@@ -17125,7 +17381,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (16364, 'Palo Colorado', 'Ejido', 2087, 'Rural', 33),
 (16365, 'Guadalupe de Támbula', 'Ejido', 2096, 'Rural', 33),
 (16366, 'Bocas', 'Colonia', 2101, 'Rural', 33);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (16367, 'Fajardo de Bocas', 'Ejido', 2104, 'Rural', 33),
 (16368, 'Charco de Sierra', 'Ranchería', 2107, 'Rural', 33),
 (16369, 'Jalpa', 'Colonia', 2108, 'Rural', 33),
@@ -17989,7 +18245,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (17227, 'La Calera', 'Ranchería', 40, 'Rural', 43),
 (17228, 'La Cebolleta', 'Ranchería', 43, 'Rural', 43),
 (17229, 'La Sobrepiedra', 'Ranchería', 62, 'Rural', 43);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (17230, 'Las Higueras (Carrizal de Higueras)', 'Colonia', 66, 'Rural', 43),
 (17231, 'Mesa de Ortiz', 'Ranchería', 82, 'Rural', 43),
 (17232, 'Mesa del Salto', 'Ranchería', 83, 'Rural', 43),
@@ -18849,7 +19105,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (18086, 'Estrada', 'Pueblo', 2543, 'Rural', 6),
 (18087, 'Camino Real', 'Fraccionamiento', 5084, 'Rural', 6),
 (18088, 'La Cantera', 'Fraccionamiento', 5330, 'Rural', 6);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (18089, 'Los Mezquites', 'Fraccionamiento', 5470, 'Rural', 6),
 (18090, 'Patria Nueva', 'Colonia', 6596, 'Rural', 6),
 (18091, 'Pedro María Anaya', 'Colonia', 6597, 'Rural', 6),
@@ -19715,7 +19971,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (18951, 'San Nicolás Quiriceo', 'Ejido', 2780, 'Rural', 42),
 (18952, 'Puerta de San Roque', 'Ranchería', 2786, 'Rural', 42),
 (18953, 'San Ramón de los Patios', 'Ranchería', 4702, 'Rural', 42);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (18954, 'El Triángulo', 'Colonia', 7685, 'Rural', 42),
 (18955, 'El Cañón', 'Ranchería', 7698, 'Rural', 42),
 (18956, 'La Crinolina', 'Ranchería', 7761, 'Rural', 42),
@@ -20575,7 +20831,7 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 (19810, 'Los Fierros', 'Ranchería', 3106, 'Rural', 39),
 (19811, 'San Nicolás de La Condesa', 'Ejido', 3107, 'Rural', 39),
 (19812, 'El Rojo (El Colorado)', 'Ranchería', 2, 'Rural', 39);
-INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
+INSERT INTO `asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_asenta_cpcons`, `d_zona`, `c_mnpio`) VALUES
 (19813, 'Parácuaro', 'Pueblo', 3110, 'Rural', 2),
 (19814, 'San Pedro', 'Colonia', 5514, 'Urbano', 2),
 (19815, 'San Francisco Parácuaro', 'Colonia', 5515, 'Urbano', 2),
@@ -21277,85 +21533,116 @@ INSERT INTO `Asentamiento` (`c_tipo_asenta`, `d_asenta`, `d_tipo_asenta`, `id_as
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Categorias`
+-- Estructura de tabla para la tabla `categorias`
 --
 
-CREATE TABLE `Categorias` (
-  `idCategoria` int NOT NULL,
+DROP TABLE IF EXISTS `categorias`;
+CREATE TABLE `categorias` (
+  `idCategoria` int(11) NOT NULL,
   `Nombre` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Categorias`
+-- Volcado de datos para la tabla `categorias`
 --
 
-INSERT INTO `Categorias` (`idCategoria`, `Nombre`) VALUES
-(1, 'Herramientas');
+INSERT INTO `categorias` (`idCategoria`, `Nombre`) VALUES
+(2, 'ANGULO'),
+(3, 'Angulo Lig'),
+(14, 'Base Tinaco'),
+(4, 'CUADRADO'),
+(23, 'Espiral Cuadrado'),
+(22, 'Espiral Redondo'),
+(1, 'Herramientas'),
+(17, 'MOFLERO'),
+(9, 'MONTEN'),
+(10, 'PTR'),
+(5, 'REDONDO'),
+(7, 'SOLERA'),
+(18, 'T.INDUSTRIAL'),
+(16, 'TABLEROS'),
+(19, 'TABULAR'),
+(21, 'TABULAR C.20'),
+(20, 'TABULAR ZINTRO'),
+(8, 'TEE'),
+(6, 'TORCIDO'),
+(15, 'TUB. C20'),
+(11, 'TUBO CED.30'),
+(12, 'TUBO CED.40'),
+(13, 'TUBO GALV');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Ciudad`
+-- Estructura de tabla para la tabla `ciudad`
 --
 
-CREATE TABLE `Ciudad` (
-  `c_cve_ciudad` int NOT NULL,
+DROP TABLE IF EXISTS `ciudad`;
+CREATE TABLE `ciudad` (
+  `c_cve_ciudad` int(11) NOT NULL,
   `d_ciudad` varchar(100) NOT NULL,
-  `c_oficina` int DEFAULT NULL,
-  `c_estado` int NOT NULL
+  `c_oficina` int(11) DEFAULT NULL,
+  `c_estado` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Ciudad`
+-- Volcado de datos para la tabla `ciudad`
 --
 
-INSERT INTO `Ciudad` (`c_cve_ciudad`, `d_ciudad`, `c_oficina`, `c_estado`) VALUES
+INSERT INTO `ciudad` (`c_cve_ciudad`, `d_ciudad`, `c_oficina`, `c_estado`) VALUES
 (1, 'León', NULL, 1),
 (2, 'Guanajuato', 36001, 1);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Clientes`
+-- Estructura de tabla para la tabla `clientes`
 --
 
-CREATE TABLE `Clientes` (
-  `idCliente` int NOT NULL,
+DROP TABLE IF EXISTS `clientes`;
+CREATE TABLE `clientes` (
+  `idCliente` int(11) NOT NULL,
   `Credito` decimal(10,2) NOT NULL,
   `Limite` decimal(10,2) NOT NULL,
-  `idPersona` int NOT NULL,
-  `idDescuento` int DEFAULT NULL
-) ;
+  `idPersona` int(11) NOT NULL,
+  `idDescuento` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Clientes`
+-- Volcado de datos para la tabla `clientes`
 --
 
-INSERT INTO `Clientes` (`idCliente`, `Credito`, `Limite`, `idPersona`, `idDescuento`) VALUES
-(5, 2454.00, 5000.00, 1, 1),
-(6, 5000.00, 8000.00, 7, 1),
-(7, 3000.00, 5000.00, 11, 1),
-(8, 3752.00, 9000.00, 12, 1);
+INSERT INTO `clientes` (`idCliente`, `Credito`, `Limite`, `idPersona`, `idDescuento`) VALUES
+(5, 100.00, 5000.00, 1, 8),
+(6, 5000.00, 8000.00, 7, NULL),
+(7, 3000.00, 5000.00, 11, NULL),
+(8, 3752.00, 9000.00, 12, NULL),
+(9, 1000.00, 1500.00, 15, 5),
+(10, 1500.00, 2000.00, 16, 5),
+(11, 120.00, 1500.00, 17, 7);
 
 --
--- Triggers `Clientes`
+-- Disparadores `clientes`
 --
+DROP TRIGGER IF EXISTS `ClienteDeleteAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ClienteDeleteAuditoriaAfter` AFTER DELETE ON `Clientes` FOR EACH ROW BEGIN
+CREATE TRIGGER `ClienteDeleteAuditoriaAfter` AFTER DELETE ON `clientes` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Eliminacion', 'Clientes', 'Credito', OLD.Credito, NULL, @id_empleado_sesion);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ClienteInsertAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ClienteInsertAuditoriaAfter` AFTER INSERT ON `Clientes` FOR EACH ROW BEGIN
+CREATE TRIGGER `ClienteInsertAuditoriaAfter` AFTER INSERT ON `clientes` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Agregacion', 'Clientes', 'Credito', NULL, NEW.Credito, @id_empleado_sesion);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ClienteInsertBefore`;
 DELIMITER $$
-CREATE TRIGGER `ClienteInsertBefore` BEFORE INSERT ON `Clientes` FOR EACH ROW BEGIN
+CREATE TRIGGER `ClienteInsertBefore` BEFORE INSERT ON `clientes` FOR EACH ROW BEGIN
     IF NEW.Credito > NEW.Limite THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'El crédito no puede superar el límite.';
@@ -21363,21 +21650,22 @@ CREATE TRIGGER `ClienteInsertBefore` BEFORE INSERT ON `Clientes` FOR EACH ROW BE
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ClienteUpdateAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ClienteUpdateAuditoriaAfter` AFTER UPDATE ON `Clientes` FOR EACH ROW BEGIN
-    -- Crédito
+CREATE TRIGGER `ClienteUpdateAuditoriaAfter` AFTER UPDATE ON `clientes` FOR EACH ROW BEGIN
+    
     IF NEW.Credito <> OLD.Credito THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Clientes', 'Credito', OLD.Credito, NEW.Credito, @id_empleado_sesion);
     END IF;
 
-    -- Límite
+    
     IF NEW.Limite <> OLD.Limite THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Clientes', 'Limite', OLD.Limite, NEW.Limite, @id_empleado_sesion);
     END IF;
 
-    -- idDescuento
+    
     IF NEW.idDescuento <> OLD.idDescuento THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Clientes', 'idDescuento', OLD.idDescuento, NEW.idDescuento, @id_empleado_sesion);
@@ -21385,8 +21673,9 @@ CREATE TRIGGER `ClienteUpdateAuditoriaAfter` AFTER UPDATE ON `Clientes` FOR EACH
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ClienteUpdateBefore`;
 DELIMITER $$
-CREATE TRIGGER `ClienteUpdateBefore` BEFORE UPDATE ON `Clientes` FOR EACH ROW BEGIN
+CREATE TRIGGER `ClienteUpdateBefore` BEFORE UPDATE ON `clientes` FOR EACH ROW BEGIN
     IF NEW.Credito > NEW.Limite THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'El crédito no puede superar el límite.';
@@ -21398,21 +21687,22 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `CodigosPostales`
+-- Estructura de tabla para la tabla `codigospostales`
 --
 
-CREATE TABLE `CodigosPostales` (
-  `c_CP` int NOT NULL,
+DROP TABLE IF EXISTS `codigospostales`;
+CREATE TABLE `codigospostales` (
+  `c_CP` int(11) NOT NULL,
   `d_codigo` varchar(10) NOT NULL,
   `d_CP` varchar(10) DEFAULT NULL,
-  `c_tipo_asenta` int NOT NULL
+  `c_tipo_asenta` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `CodigosPostales`
+-- Volcado de datos para la tabla `codigospostales`
 --
 
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (1, '37000', '37000', 1),
 (2, '36000', '36000', 1),
 (3, '36003', '36003', 2),
@@ -23150,7 +23440,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (1735, '36490', '36490', 1734),
 (1736, '36493', '36493', 1735),
 (1737, '36493', '36493', 1736);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (1738, '36493', '36493', 1737),
 (1739, '36493', '36493', 1738),
 (1740, '36493', '36493', 1739),
@@ -24814,7 +25104,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (3398, '36960', '36960', 3397),
 (3399, '36960', '36960', 3398),
 (3400, '36960', '36960', 3399);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (3401, '36960', '36960', 3400),
 (3402, '36963', '36963', 3401),
 (3403, '36963', '36963', 3402),
@@ -26478,7 +26768,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (5061, '37613', '37613', 5060),
 (5062, '37613', '37613', 5061),
 (5063, '37614', '37614', 5062);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (5064, '37614', '37614', 5063),
 (5065, '37614', '37614', 5064),
 (5066, '37614', '37614', 5065),
@@ -28142,7 +28432,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (6724, '37917', '37917', 6723),
 (6725, '37917', '37917', 6724),
 (6726, '37917', '37917', 6725);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (6727, '37917', '37917', 6726),
 (6728, '37917', '37917', 6727),
 (6729, '37917', '37917', 6728),
@@ -29806,7 +30096,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (8387, '38254', '38254', 8386),
 (8388, '38254', '38254', 8387),
 (8389, '38254', '38254', 8388);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (8390, '38254', '38254', 8389),
 (8391, '38254', '38254', 8390),
 (8392, '38254', '38254', 8391),
@@ -31467,7 +31757,7 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 (10047, '38950', '38950', 10046),
 (10048, '38950', '38950', 10047),
 (10049, '38953', '38953', 10048);
-INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
+INSERT INTO `codigospostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALUES
 (10050, '38954', '38954', 10049),
 (10051, '38954', '38954', 10050),
 (10052, '38954', '38954', 10051),
@@ -31678,43 +31968,49 @@ INSERT INTO `CodigosPostales` (`c_CP`, `d_codigo`, `d_CP`, `c_tipo_asenta`) VALU
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Descuentos`
+-- Estructura de tabla para la tabla `descuentos`
 --
 
-CREATE TABLE `Descuentos` (
-  `idDescuento` int NOT NULL,
+DROP TABLE IF EXISTS `descuentos`;
+CREATE TABLE `descuentos` (
+  `idDescuento` int(11) NOT NULL,
   `Categoria` varchar(100) NOT NULL,
   `Porcentaje` decimal(5,2) NOT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Descuentos`
+-- Volcado de datos para la tabla `descuentos`
 --
 
-INSERT INTO `Descuentos` (`idDescuento`, `Categoria`, `Porcentaje`) VALUES
-(1, 'Frecuente', 10.00),
-(2, 'Frecuente', 10.00);
+INSERT INTO `descuentos` (`idDescuento`, `Categoria`, `Porcentaje`) VALUES
+(4, 'PUBLICO1', 0.00),
+(5, 'HERRERO2', 0.00),
+(6, 'HERRERO3', 0.00),
+(7, 'HERRERO4', 0.00),
+(8, 'MAYOREO1', 0.00),
+(9, 'MAYOREO2', 0.00);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `DetallePedidos`
+-- Estructura de tabla para la tabla `detallepedidos`
 --
 
-CREATE TABLE `DetallePedidos` (
-  `idDetallePedido` int NOT NULL,
-  `idPedido` int NOT NULL,
-  `idProducto` int NOT NULL,
-  `Cantidad` int NOT NULL,
+DROP TABLE IF EXISTS `detallepedidos`;
+CREATE TABLE `detallepedidos` (
+  `idDetallePedido` int(11) NOT NULL,
+  `idPedido` int(11) NOT NULL,
+  `idProducto` int(11) NOT NULL,
+  `Cantidad` int(11) NOT NULL,
   `PrecioUnitario` decimal(10,2) NOT NULL,
-  `Subtotal` decimal(10,2) GENERATED ALWAYS AS ((`Cantidad` * `PrecioUnitario`)) STORED
-) ;
+  `Subtotal` decimal(10,2) GENERATED ALWAYS AS (`Cantidad` * `PrecioUnitario`) STORED
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `DetallePedidos`
+-- Volcado de datos para la tabla `detallepedidos`
 --
 
-INSERT INTO `DetallePedidos` (`idDetallePedido`, `idPedido`, `idProducto`, `Cantidad`, `PrecioUnitario`) VALUES
+INSERT INTO `detallepedidos` (`idDetallePedido`, `idPedido`, `idProducto`, `Cantidad`, `PrecioUnitario`) VALUES
 (2, 4, 2, 1, 150.00),
 (3, 5, 2, 1, 150.00),
 (4, 6, 2, 1, 150.00),
@@ -31735,41 +32031,55 @@ INSERT INTO `DetallePedidos` (`idDetallePedido`, `idPedido`, `idProducto`, `Cant
 (19, 20, 2, 2, 150.00),
 (20, 20, 4, 1, 50.00),
 (22, 21, 4, 1, 50.00),
-(23, 22, 2, 1, 150.00);
+(23, 22, 2, 1, 150.00),
+(24, 23, 46, 5, 501.00),
+(25, 23, 51, 3, 788.00),
+(26, 23, 53, 4, 856.00),
+(27, 23, 56, 3, 1752.00);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `DetalleVenta`
+-- Estructura de tabla para la tabla `detalleventa`
 --
 
-CREATE TABLE `DetalleVenta` (
-  `idDetalleVenta` int NOT NULL,
-  `Cantidad` int NOT NULL,
+DROP TABLE IF EXISTS `detalleventa`;
+CREATE TABLE `detalleventa` (
+  `idDetalleVenta` int(11) NOT NULL,
+  `Cantidad` int(11) NOT NULL,
   `Total` decimal(10,2) NOT NULL,
   `IVA` decimal(10,2) NOT NULL,
   `IEPS` decimal(10,2) NOT NULL,
-  `idVenta` int NOT NULL,
-  `idProducto` int NOT NULL,
-  `idDescuento` int DEFAULT NULL
-) ;
+  `idVenta` int(11) NOT NULL,
+  `idProducto` int(11) NOT NULL,
+  `idDescuento` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `DetalleVenta`
+-- Volcado de datos para la tabla `detalleventa`
 --
 
-INSERT INTO `DetalleVenta` (`idDetalleVenta`, `Cantidad`, `Total`, `IVA`, `IEPS`, `idVenta`, `idProducto`, `idDescuento`) VALUES
+INSERT INTO `detalleventa` (`idDetalleVenta`, `Cantidad`, `Total`, `IVA`, `IEPS`, `idVenta`, `idProducto`, `idDescuento`) VALUES
 (17, 1, 150.00, 24.00, 12.00, 33, 2, NULL),
 (19, 1, 1650.00, 264.00, 132.00, 35, 2, NULL),
 (20, 1, 50.00, 8.00, 4.00, 36, 4, NULL),
 (22, 1, 50.00, 8.00, 4.00, 38, 4, NULL),
-(23, 1, 150.00, 24.00, 12.00, 39, 2, NULL);
+(23, 1, 150.00, 24.00, 12.00, 39, 2, NULL),
+(24, 1, 150.00, 24.00, 12.00, 40, 2, NULL),
+(25, 2, 300.00, 48.00, 24.00, 41, 2, NULL),
+(26, 9, 135.00, 21.60, 10.80, 42, 6, NULL),
+(27, 4, 60.00, 9.60, 4.80, 42, 7, NULL),
+(29, 15, 225.00, 36.00, 18.00, 43, 7, NULL),
+(31, 3, 1503.00, 240.48, 120.24, 45, 46, NULL),
+(32, 3, 3795.00, 607.20, 303.60, 46, 99, NULL),
+(33, 3, 1503.00, 240.48, 120.24, 47, 46, NULL);
 
 --
--- Triggers `DetalleVenta`
+-- Disparadores `detalleventa`
 --
+DROP TRIGGER IF EXISTS `VentaCantidadBefore`;
 DELIMITER $$
-CREATE TRIGGER `VentaCantidadBefore` BEFORE INSERT ON `DetalleVenta` FOR EACH ROW BEGIN
+CREATE TRIGGER `VentaCantidadBefore` BEFORE INSERT ON `detalleventa` FOR EACH ROW BEGIN
     DECLARE stockDisponible INT;
     SELECT Stock INTO stockDisponible FROM Productos WHERE idProducto = NEW.idProducto;
     IF NEW.Cantidad > stockDisponible THEN
@@ -31779,8 +32089,9 @@ CREATE TRIGGER `VentaCantidadBefore` BEFORE INSERT ON `DetalleVenta` FOR EACH RO
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `VerificarVentaProducto`;
 DELIMITER $$
-CREATE TRIGGER `VerificarVentaProducto` BEFORE INSERT ON `DetalleVenta` FOR EACH ROW BEGIN
+CREATE TRIGGER `VerificarVentaProducto` BEFORE INSERT ON `detalleventa` FOR EACH ROW BEGIN
     DECLARE existencia INT;
     SELECT Stock INTO existencia FROM Productos WHERE idProducto = NEW.idProducto;
     IF existencia < NEW.Cantidad THEN
@@ -31794,58 +32105,68 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Domicilios`
+-- Estructura de tabla para la tabla `domicilios`
 --
 
-CREATE TABLE `Domicilios` (
-  `idDomicilio` int NOT NULL,
+DROP TABLE IF EXISTS `domicilios`;
+CREATE TABLE `domicilios` (
+  `idDomicilio` int(11) NOT NULL,
   `Calle` varchar(50) NOT NULL,
-  `Numero` int NOT NULL,
-  `c_CP` int NOT NULL
+  `Numero` int(11) NOT NULL,
+  `c_CP` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Domicilios`
+-- Volcado de datos para la tabla `domicilios`
 --
 
-INSERT INTO `Domicilios` (`idDomicilio`, `Calle`, `Numero`, `c_CP`) VALUES
-(1, 'Benito Juárez', 101, 1),
+INSERT INTO `domicilios` (`idDomicilio`, `Calle`, `Numero`, `c_CP`) VALUES
+(1, '0', 101, 10164),
 (7, 'Pedrito', 367, 7),
-(8, 'Privada Guzman', 3, 7),
+(8, '0', 3, 10049),
 (9, 'Rincon', 23, 21),
-(10, 'Los Limones', 230, 1);
+(10, 'Los Limones', 230, 1),
+(11, 'Niños Heroes', 114, 10000),
+(12, 'Niños Heroes', 114, 10000),
+(13, '1Mayo', 10, 10000),
+(14, '1Mayo', 10, 10000),
+(15, 'Ninos Heroes', 114, 10000);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Empleados`
+-- Estructura de tabla para la tabla `empleados`
 --
 
-CREATE TABLE `Empleados` (
-  `idEmpleado` int NOT NULL,
+DROP TABLE IF EXISTS `empleados`;
+CREATE TABLE `empleados` (
+  `idEmpleado` int(11) NOT NULL,
   `Puesto` enum('Administrador','Cajero','Agente de Venta') NOT NULL,
   `RFC` varchar(13) NOT NULL,
   `NumeroSeguroSocial` varchar(11) NOT NULL,
   `Usuario` varchar(255) NOT NULL,
   `Contraseña` varchar(255) NOT NULL,
-  `idPersona` int NOT NULL
-) ;
+  `idPersona` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Empleados`
+-- Volcado de datos para la tabla `empleados`
 --
 
-INSERT INTO `Empleados` (`idEmpleado`, `Puesto`, `RFC`, `NumeroSeguroSocial`, `Usuario`, `Contraseña`, `idPersona`) VALUES
+INSERT INTO `empleados` (`idEmpleado`, `Puesto`, `RFC`, `NumeroSeguroSocial`, `Usuario`, `Contraseña`, `idPersona`) VALUES
 (1, 'Administrador', 'PEJR8501', '12345678901', 'juan.perez@gmail.com', '$2y$10$fvuEI8yelTLr5WuuR6rqhekSsKDRzuRRUMXj.76rfXvdwJuh9OjDa', 1),
 (16, 'Cajero', '0193787845', '2848358375', 'luisegd2004@gmail.com', '$2y$10$f3ANLxVH3shZ9gdaTPnDeODLAkW.Wrthy9gVfQswHl9WAu9txFvQG', 5),
 (17, 'Agente de Venta', '28478635854', '39485034685', 'Asesor.@gmail.com', '$2y$10$F.VQ8p1uLMHZ8.GYikJ9yuBIsOM2e.EDHLvt12Hui1M7zOZNOIyI6', 8),
-(18, 'Cajero', 'Renni89', '236434', 'Renni@gmail.com', '$2y$10$FQxn3huncNPJVluXWc6doOh1VXGUpGbPPQ/5wSGdVOl1qHlyBn9Ky', 10);
+(18, 'Cajero', 'Renni89', '236434', 'Renni@gmail.com', '$2y$10$FQxn3huncNPJVluXWc6doOh1VXGUpGbPPQ/5wSGdVOl1qHlyBn9Ky', 10),
+(19, 'Cajero', 'Pavl041207pc9', '1234567891', 'Yaz', '$2y$10$n7cdTR1taXMU4MIEdl8HduD3LUmT/K1r87sdsgJjd.xFpARcD3jCy', 13),
+(20, 'Agente de Venta', 'rfcrfcrfc', '987654321', 'Tania', '$2y$10$jIHeJEfDFcOQAwU2tX67jeJeCgB/csPnWy4Fhbs8qu2BxkCfn/qnm', 14);
 
 --
--- Triggers `Empleados`
+-- Disparadores `empleados`
 --
+DROP TRIGGER IF EXISTS `EmpleadoInsertBefore`;
 DELIMITER $$
-CREATE TRIGGER `EmpleadoInsertBefore` BEFORE INSERT ON `Empleados` FOR EACH ROW BEGIN
+CREATE TRIGGER `EmpleadoInsertBefore` BEFORE INSERT ON `empleados` FOR EACH ROW BEGIN
     IF NEW.Usuario IS NULL OR NEW.Contraseña IS NULL THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Usuario y contraseña no pueden ser nulos.';
@@ -31853,8 +32174,9 @@ CREATE TRIGGER `EmpleadoInsertBefore` BEFORE INSERT ON `Empleados` FOR EACH ROW 
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `EmpleadoUpdateBefore`;
 DELIMITER $$
-CREATE TRIGGER `EmpleadoUpdateBefore` BEFORE UPDATE ON `Empleados` FOR EACH ROW BEGIN
+CREATE TRIGGER `EmpleadoUpdateBefore` BEFORE UPDATE ON `empleados` FOR EACH ROW BEGIN
     IF NEW.Usuario IS NULL OR NEW.Contraseña IS NULL THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Usuario y contraseña no pueden ser nulos.';
@@ -31862,47 +32184,50 @@ CREATE TRIGGER `EmpleadoUpdateBefore` BEFORE UPDATE ON `Empleados` FOR EACH ROW 
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `EmpleadosDeleteAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `EmpleadosDeleteAuditoriaAfter` AFTER DELETE ON `Empleados` FOR EACH ROW BEGIN
+CREATE TRIGGER `EmpleadosDeleteAuditoriaAfter` AFTER DELETE ON `empleados` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Eliminacion', 'Empleados', 'Usuario', OLD.Usuario, NULL, @id_empleado_sesion);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `EmpleadosInsertAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `EmpleadosInsertAuditoriaAfter` AFTER INSERT ON `Empleados` FOR EACH ROW BEGIN
+CREATE TRIGGER `EmpleadosInsertAuditoriaAfter` AFTER INSERT ON `empleados` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Incorporacion', 'Empleados', 'Usuario', NULL, NEW.Usuario, NEW.idEmpleado);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `EmpleadosUpdateAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `EmpleadosUpdateAuditoriaAfter` AFTER UPDATE ON `Empleados` FOR EACH ROW BEGIN
-    -- Usuario
+CREATE TRIGGER `EmpleadosUpdateAuditoriaAfter` AFTER UPDATE ON `empleados` FOR EACH ROW BEGIN
+    
     IF NEW.Usuario <> OLD.Usuario THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Empleados', 'Usuario', OLD.Usuario, NEW.Usuario, @id_empleado_sesion);
     END IF;
 
-    -- Contraseña (hash)
+    
     IF NEW.Contraseña <> OLD.Contraseña THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Empleados', 'Contraseña', OLD.Contraseña, NEW.Contraseña, @id_empleado_sesion);
     END IF;
 
-    -- Puesto
+    
     IF NEW.Puesto <> OLD.Puesto THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Empleados', 'Puesto', OLD.Puesto, NEW.Puesto, @id_empleado_sesion);
     END IF;
 
-    -- RFC
+    
     IF NEW.RFC <> OLD.RFC THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Empleados', 'RFC', OLD.RFC, NEW.RFC, @id_empleado_sesion);
     END IF;
 
-    -- NumeroSeguroSocial
+    
     IF NEW.NumeroSeguroSocial <> OLD.NumeroSeguroSocial THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Empleados', 'NumeroSeguroSocial', OLD.NumeroSeguroSocial, NEW.NumeroSeguroSocial, @id_empleado_sesion);
@@ -31915,41 +32240,43 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Estado`
+-- Estructura de tabla para la tabla `estado`
 --
 
-CREATE TABLE `Estado` (
-  `c_estado` int NOT NULL,
+DROP TABLE IF EXISTS `estado`;
+CREATE TABLE `estado` (
+  `c_estado` int(11) NOT NULL,
   `d_Estado` varchar(100) NOT NULL,
-  `id_Pais` int NOT NULL
+  `id_Pais` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Estado`
+-- Volcado de datos para la tabla `estado`
 --
 
-INSERT INTO `Estado` (`c_estado`, `d_Estado`, `id_Pais`) VALUES
+INSERT INTO `estado` (`c_estado`, `d_Estado`, `id_Pais`) VALUES
 (1, 'Guanajuato', 1);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Finanzas`
+-- Estructura de tabla para la tabla `finanzas`
 --
 
-CREATE TABLE `Finanzas` (
-  `idFinanza` int NOT NULL,
-  `idVenta` int NOT NULL,
+DROP TABLE IF EXISTS `finanzas`;
+CREATE TABLE `finanzas` (
+  `idFinanza` int(11) NOT NULL,
+  `idVenta` int(11) NOT NULL,
   `TotalVenta` decimal(10,2) NOT NULL,
   `Invertido` decimal(10,2) NOT NULL,
-  `Ganancia` decimal(10,2) GENERATED ALWAYS AS ((`TotalVenta` - `Invertido`)) STORED
+  `Ganancia` decimal(10,2) GENERATED ALWAYS AS (`TotalVenta` - `Invertido`) STORED
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Finanzas`
+-- Volcado de datos para la tabla `finanzas`
 --
 
-INSERT INTO `Finanzas` (`idFinanza`, `idVenta`, `TotalVenta`, `Invertido`) VALUES
+INSERT INTO `finanzas` (`idFinanza`, `idVenta`, `TotalVenta`, `Invertido`) VALUES
 (1, 2, 150.00, 100.00),
 (2, 25, 558.00, 0.00),
 (3, 33, 186.00, 0.00),
@@ -31957,31 +32284,39 @@ INSERT INTO `Finanzas` (`idFinanza`, `idVenta`, `TotalVenta`, `Invertido`) VALUE
 (5, 35, 2046.00, 0.00),
 (6, 36, 62.00, 0.00),
 (7, 38, 62.00, 0.00),
-(8, 39, 186.00, 0.00);
+(8, 39, 186.00, 0.00),
+(9, 40, 186.00, 0.00),
+(10, 41, 744.00, 0.00),
+(11, 42, 279.00, 0.00),
+(12, 44, 1863.72, 0.00),
+(13, 45, 1863.72, 0.00),
+(14, 46, 4705.80, 0.00),
+(15, 47, 1863.72, 0.00);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `HistorialModificaciones`
+-- Estructura de tabla para la tabla `historialmodificaciones`
 --
 
-CREATE TABLE `HistorialModificaciones` (
-  `idHistorial` int NOT NULL,
+DROP TABLE IF EXISTS `historialmodificaciones`;
+CREATE TABLE `historialmodificaciones` (
+  `idHistorial` int(11) NOT NULL,
   `Movimiento` varchar(50) DEFAULT NULL,
   `TablaAfectada` varchar(100) NOT NULL,
   `ColumnaAfectada` varchar(100) NOT NULL,
-  `DatoAnterior` text,
-  `DatoNuevo` text,
-  `Fecha` date NOT NULL DEFAULT (curdate()),
-  `Hora` time NOT NULL DEFAULT (curtime()),
-  `idEmpleado` int NOT NULL
+  `DatoAnterior` text DEFAULT NULL,
+  `DatoNuevo` text DEFAULT NULL,
+  `Fecha` date NOT NULL DEFAULT curdate(),
+  `Hora` time NOT NULL DEFAULT curtime(),
+  `idEmpleado` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `HistorialModificaciones`
+-- Volcado de datos para la tabla `historialmodificaciones`
 --
 
-INSERT INTO `HistorialModificaciones` (`idHistorial`, `Movimiento`, `TablaAfectada`, `ColumnaAfectada`, `DatoAnterior`, `DatoNuevo`, `Fecha`, `Hora`, `idEmpleado`) VALUES
+INSERT INTO `historialmodificaciones` (`idHistorial`, `Movimiento`, `TablaAfectada`, `ColumnaAfectada`, `DatoAnterior`, `DatoNuevo`, `Fecha`, `Hora`, `idEmpleado`) VALUES
 (3, 'Incorporacion', 'Empleados', 'Usuario', NULL, 'juan.perez@gmail.com', '2025-05-30', '22:50:31', 1),
 (6, 'Agregacion', 'Clientes', 'Credito', NULL, '3000.00', '2025-05-30', '23:04:48', 1),
 (7, 'Creacion', 'Productos', 'Nombre', NULL, 'Martillo de acero', '2025-05-30', '23:05:48', 1),
@@ -32028,25 +32363,52 @@ INSERT INTO `HistorialModificaciones` (`idHistorial`, `Movimiento`, `TablaAfecta
 (50, 'Modificacion', 'Clientes', 'Credito', '4000.00', '3938.00', '2025-06-03', '03:41:04', 18),
 (51, 'Modificacion', 'Productos', 'Stock', '47', '46', '2025-06-03', '03:41:04', 18),
 (52, 'Modificacion', 'Clientes', 'Credito', '3938.00', '3752.00', '2025-06-03', '03:50:23', 16),
-(53, 'Modificacion', 'Productos', 'Stock', '41', '40', '2025-06-03', '03:50:23', 16);
+(53, 'Modificacion', 'Productos', 'Stock', '41', '40', '2025-06-03', '03:50:23', 16),
+(54, 'Modificacion', 'Productos', 'Stock', '40', '39', '2025-06-03', '13:08:05', 1),
+(55, 'Modificacion', 'Productos', 'Estado', 'Activo', 'Inactivo', '2025-06-03', '20:24:17', 1),
+(56, 'Modificacion', 'Productos', 'Estado', 'Inactivo', 'Activo', '2025-06-03', '20:24:45', 1),
+(57, 'Incorporacion', 'Empleados', 'Usuario', NULL, 'Yaz', '2025-06-03', '21:20:02', 19),
+(58, 'Incorporacion', 'Empleados', 'Usuario', NULL, 'Tania', '2025-06-03', '21:40:27', 20),
+(59, 'Modificacion', 'Productos', 'Stock', '39', '35', '2025-06-04', '09:10:53', 1),
+(60, 'Modificacion', 'Productos', 'Stock', '35', '37', '2025-06-04', '09:12:26', 1),
+(61, 'Modificacion', 'Clientes', 'Credito', '2454.00', '100.00', '2025-06-04', '14:29:31', 1),
+(62, 'Creacion', 'Productos', 'Nombre', NULL, 'Yogurt', '2025-06-04', '14:35:15', 1),
+(63, 'Creacion', 'Productos', 'Nombre', NULL, 'Leche', '2025-06-04', '14:35:41', 1),
+(64, 'Creacion', 'Productos', 'Nombre', NULL, 'Fresas', '2025-06-04', '14:36:11', 1),
+(65, 'Modificacion', 'Productos', 'Estado', 'Activo', 'Inactivo', '2025-06-04', '14:36:20', 1),
+(66, 'Modificacion', 'Productos', 'Stock', '50', '40', '2025-06-04', '14:37:30', 1),
+(67, 'Modificacion', 'Productos', 'Stock', '20', '15', '2025-06-04', '14:37:30', 1),
+(68, 'Modificacion', 'Productos', 'Stock', '40', '41', '2025-06-04', '14:41:08', 1),
+(69, 'Modificacion', 'Productos', 'Stock', '15', '16', '2025-06-04', '14:41:30', 1),
+(70, 'Agregacion', 'Clientes', 'Credito', NULL, '1000.00', '2025-06-05', '02:46:21', 1),
+(71, 'Agregacion', 'Clientes', 'Credito', NULL, '1500.00', '2025-06-05', '08:46:57', 1),
+(72, 'Modificacion', 'Productos', 'Stock', '50', '47', '2025-06-05', '09:00:42', 1),
+(73, 'Modificacion', 'Productos', 'Stock', '47', '44', '2025-06-05', '09:03:52', 1),
+(74, 'Creacion', 'Productos', 'Nombre', NULL, 'Tubo', '2025-06-05', '09:07:42', 1),
+(75, 'Modificacion', 'Productos', 'Estado', 'Activo', 'Inactivo', '2025-06-05', '09:08:01', 1),
+(76, 'Modificacion', 'Productos', 'Stock', '44', '47', '2025-06-05', '09:11:48', 1),
+(77, 'Agregacion', 'Clientes', 'Credito', NULL, '120.00', '2025-06-05', '09:13:29', 1),
+(78, 'Modificacion', 'Productos', 'Stock', '50', '47', '2025-06-05', '09:14:36', 1),
+(79, 'Modificacion', 'Productos', 'Stock', '47', '44', '2025-06-05', '09:16:07', 19);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Municipio`
+-- Estructura de tabla para la tabla `municipio`
 --
 
-CREATE TABLE `Municipio` (
-  `c_mnpio` int NOT NULL,
+DROP TABLE IF EXISTS `municipio`;
+CREATE TABLE `municipio` (
+  `c_mnpio` int(11) NOT NULL,
   `D_mnpio` varchar(100) NOT NULL,
-  `c_cve_ciudad` int DEFAULT NULL
+  `c_cve_ciudad` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Municipio`
+-- Volcado de datos para la tabla `municipio`
 --
 
-INSERT INTO `Municipio` (`c_mnpio`, `D_mnpio`, `c_cve_ciudad`) VALUES
+INSERT INTO `municipio` (`c_mnpio`, `D_mnpio`, `c_cve_ciudad`) VALUES
 (1, 'León', 1),
 (2, 'Guanajuato', 1),
 (3, 'Silao de la Victoria', 1),
@@ -32098,41 +32460,43 @@ INSERT INTO `Municipio` (`c_mnpio`, `D_mnpio`, `c_cve_ciudad`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Pais`
+-- Estructura de tabla para la tabla `pais`
 --
 
-CREATE TABLE `Pais` (
-  `id_Pais` int NOT NULL,
+DROP TABLE IF EXISTS `pais`;
+CREATE TABLE `pais` (
+  `id_Pais` int(11) NOT NULL,
   `Nombre` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Pais`
+-- Volcado de datos para la tabla `pais`
 --
 
-INSERT INTO `Pais` (`id_Pais`, `Nombre`) VALUES
+INSERT INTO `pais` (`id_Pais`, `Nombre`) VALUES
 (1, 'México');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Pedidos`
+-- Estructura de tabla para la tabla `pedidos`
 --
 
-CREATE TABLE `Pedidos` (
-  `idPedido` int NOT NULL,
-  `Fecha` date NOT NULL DEFAULT (curdate()),
-  `Hora` time NOT NULL DEFAULT (curtime()),
+DROP TABLE IF EXISTS `pedidos`;
+CREATE TABLE `pedidos` (
+  `idPedido` int(11) NOT NULL,
+  `Fecha` date NOT NULL DEFAULT curdate(),
+  `Hora` time NOT NULL DEFAULT curtime(),
   `Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado') NOT NULL DEFAULT 'Pendiente',
-  `idCliente` int NOT NULL,
-  `idEmpleado` int DEFAULT NULL
+  `idCliente` int(11) NOT NULL,
+  `idEmpleado` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Pedidos`
+-- Volcado de datos para la tabla `pedidos`
 --
 
-INSERT INTO `Pedidos` (`idPedido`, `Fecha`, `Hora`, `Estatus`, `idCliente`, `idEmpleado`) VALUES
+INSERT INTO `pedidos` (`idPedido`, `Fecha`, `Hora`, `Estatus`, `idCliente`, `idEmpleado`) VALUES
 (1, '2025-05-30', '23:10:25', 'Enviado', 5, 1),
 (2, '2025-05-30', '23:10:56', 'Cancelado', 5, 1),
 (4, '2025-06-02', '01:34:20', 'Cancelado', 6, 17),
@@ -32150,13 +32514,15 @@ INSERT INTO `Pedidos` (`idPedido`, `Fecha`, `Hora`, `Estatus`, `idCliente`, `idE
 (19, '2025-06-02', '23:44:52', 'Enviado', 7, 1),
 (20, '2025-06-03', '00:34:36', 'Enviado', 6, 16),
 (21, '2025-06-03', '02:16:06', 'Enviado', 8, 1),
-(22, '2025-06-03', '03:43:06', 'Enviado', 8, 16);
+(22, '2025-06-03', '03:43:06', 'Enviado', 8, 16),
+(23, '2025-06-05', '09:17:52', 'Aceptado', 9, 20);
 
 --
--- Triggers `Pedidos`
+-- Disparadores `pedidos`
 --
+DROP TRIGGER IF EXISTS `trg_ProcesarVentaAlEnviar`;
 DELIMITER $$
-CREATE TRIGGER `trg_ProcesarVentaAlEnviar` AFTER UPDATE ON `Pedidos` FOR EACH ROW BEGIN
+CREATE TRIGGER `trg_ProcesarVentaAlEnviar` AFTER UPDATE ON `pedidos` FOR EACH ROW BEGIN
     IF NEW.Estatus = 'Enviado' AND OLD.Estatus <> 'Enviado' THEN
         CALL ProcesarVentaDePedido(NEW.idPedido);
     END IF;
@@ -32167,82 +32533,331 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Personas`
+-- Estructura de tabla para la tabla `personas`
 --
 
-CREATE TABLE `Personas` (
-  `idPersona` int NOT NULL,
+DROP TABLE IF EXISTS `personas`;
+CREATE TABLE `personas` (
+  `idPersona` int(11) NOT NULL,
   `Nombre` varchar(50) NOT NULL,
   `Paterno` varchar(50) NOT NULL,
   `Materno` varchar(50) NOT NULL,
   `Telefono` varchar(10) NOT NULL,
   `Email` varchar(50) NOT NULL,
-  `Edad` smallint NOT NULL,
+  `Edad` smallint(6) NOT NULL,
   `Sexo` enum('H','M') NOT NULL,
-  `idDomicilio` int DEFAULT NULL,
+  `idDomicilio` int(11) DEFAULT NULL,
   `Estatus` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo'
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Personas`
+-- Volcado de datos para la tabla `personas`
 --
 
-INSERT INTO `Personas` (`idPersona`, `Nombre`, `Paterno`, `Materno`, `Telefono`, `Email`, `Edad`, `Sexo`, `idDomicilio`, `Estatus`) VALUES
+INSERT INTO `personas` (`idPersona`, `Nombre`, `Paterno`, `Materno`, `Telefono`, `Email`, `Edad`, `Sexo`, `idDomicilio`, `Estatus`) VALUES
 (1, 'Juan', 'Pérez', 'Ramírez', '4771234567', 'juan.perez@gmail.com', 30, 'M', 1, 'Activo'),
 (3, 'Lucía', 'Gómez', 'Hernández', '4779876543', 'lucia.gomez@gmail.com', 29, 'M', 1, 'Activo'),
-(5, 'Eduardo', 'Yepez', 'Gordillo', '4661600541', 'luisegd2004@gmail.com', 21, 'H', 1, 'Activo'),
+(5, 'Lalo', 'Yepez', 'Gordillo', '4661600541', 'luisegd2004@gmail.com', 21, 'H', 1, 'Activo'),
 (7, 'Reyna', 'Pérez', 'Carmona', '4661205923', 'Reynaaa66@gmail.com', 66, 'M', 1, 'Activo'),
 (8, 'Asesor', 'Ventas', 'Venta', '1233214545', 'Asesor.@gmail.com', 22, 'M', 1, 'Activo'),
-(10, 'Rene ', 'Guzman', 'Guzman', '4661872434', 'Renni@gmail.com', 47, 'H', 8, 'Activo'),
+(10, 'Rene', 'Guzman', 'Guzman', '4661872434', 'Renni@gmail.com', 47, 'H', 8, 'Activo'),
 (11, 'Teresa', 'Rangel', 'Carmona', '4666655156', 'TeseraZorra@gmail.com', 65, 'M', 9, 'Activo'),
-(12, 'Sebastian', 'Guzman', 'Rangel', '4665543434', 'Seebas222@gmail.com', 27, 'H', 10, 'Activo');
+(12, 'Sebastian', 'Guzman', 'Rangel', '4665543434', 'Seebas222@gmail.com', 27, 'H', 10, 'Activo'),
+(13, 'Yazmin', 'Paniagua', 'Vera', '4661035295', 'yazminpaniagua14@gmail.com', 20, 'M', 11, 'Activo'),
+(14, 'Tania', 'Paniagua', 'Vera', '4661475287', 'correitotania@gmail', 18, 'M', 12, 'Activo'),
+(15, 'Ale', 'Cruz', 'Vera', '4662024766', 'alecruz@', 19, 'M', 13, 'Activo'),
+(16, 'Alex', 'Cruz', 'Vera', '1111111321', 'alex@', 20, 'H', 14, 'Activo'),
+(17, 'Cinthia', 'Vera', 'Rangel', '4661618221', 'cinthia@', 20, 'M', 15, 'Activo');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Productos`
+-- Estructura de tabla para la tabla `productos`
 --
 
-CREATE TABLE `Productos` (
-  `idProducto` int NOT NULL,
+DROP TABLE IF EXISTS `productos`;
+CREATE TABLE `productos` (
+  `idProducto` int(11) NOT NULL,
   `Nombre` varchar(100) NOT NULL,
   `PrecioCompra` decimal(10,2) NOT NULL,
   `PrecioVenta` decimal(10,2) NOT NULL,
-  `Stock` int NOT NULL DEFAULT '0',
+  `Stock` int(11) NOT NULL DEFAULT 0,
   `Estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo',
-  `idCategoria` int NOT NULL,
-  `idProveedor` int NOT NULL,
-  `CodigoBarras` bigint DEFAULT NULL
-) ;
+  `idCategoria` int(11) NOT NULL,
+  `idProveedor` int(11) NOT NULL,
+  `CodigoBarras` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Productos`
+-- Volcado de datos para la tabla `productos`
 --
 
-INSERT INTO `Productos` (`idProducto`, `Nombre`, `PrecioCompra`, `PrecioVenta`, `Stock`, `Estado`, `idCategoria`, `idProveedor`, `CodigoBarras`) VALUES
-(2, 'Martillo de acero', 100.00, 150.00, 40, 'Activo', 1, 2, 82476358365465),
+INSERT INTO `productos` (`idProducto`, `Nombre`, `PrecioCompra`, `PrecioVenta`, `Stock`, `Estado`, `idCategoria`, `idProveedor`, `CodigoBarras`) VALUES
+(2, 'Martillo de acero', 100.00, 150.00, 37, 'Activo', 1, 2, 82476358365465),
 (4, 'Mangera', 30.00, 50.00, 46, 'Activo', 1, 1, 3235749543),
-(5, 'Bi Color Grueso', 15.00, 25.00, 100, 'Activo', 1, 2, 947340098549);
+(5, 'Bi Color Grueso', 15.00, 25.00, 100, 'Activo', 1, 2, 947340098549),
+(6, 'Yogurt', 10.00, 15.00, 41, 'Activo', 1, 1, 1111),
+(7, 'Leche', 10.00, 15.00, 16, 'Activo', 1, 1, 2222),
+(8, 'Fresas', 10.00, 15.00, 20, 'Inactivo', 1, 1, 3333),
+(46, '3x6 C-16', 389.00, 501.00, 44, 'Activo', 9, 1, 1),
+(47, '4x6 C-16', 519.00, 668.00, 50, 'Activo', 9, 1, 2),
+(48, '3x6', 469.00, 603.00, 50, 'Activo', 9, 1, 3),
+(49, '4x4', 410.00, 528.00, 50, 'Activo', 9, 1, 4),
+(50, '4x5', 523.00, 673.00, 50, 'Activo', 9, 1, 5),
+(51, '4x6', 612.00, 788.00, 50, 'Activo', 9, 1, 6),
+(52, '5x5', 565.00, 728.00, 50, 'Activo', 9, 1, 7),
+(53, '5x6', 665.00, 856.00, 50, 'Activo', 9, 1, 8),
+(54, '6x6', 763.00, 983.00, 50, 'Activo', 9, 1, 9),
+(55, '8x6', 1017.00, 1310.00, 50, 'Activo', 9, 1, 10),
+(56, '8x8', 1361.00, 1752.00, 50, 'Activo', 9, 1, 11),
+(57, '10x10', 1914.00, 2464.00, 50, 'Activo', 9, 1, 12),
+(58, '3/4', 197.00, 253.00, 50, 'Activo', 10, 1, 13),
+(59, '1 C13', 322.00, 414.00, 50, 'Activo', 10, 1, 14),
+(60, '1 C14', 275.00, 353.00, 50, 'Activo', 10, 1, 15),
+(61, '1 C16', 225.00, 289.00, 50, 'Activo', 10, 1, 16),
+(62, '1 1/4 C13', 402.00, 517.00, 50, 'Activo', 10, 1, 17),
+(63, '1 1/4 C14', 330.00, 425.00, 50, 'Activo', 10, 1, 18),
+(64, '1 1/4 C16', 280.00, 360.00, 50, 'Activo', 10, 1, 19),
+(65, '1 1/2 C12', 566.00, 729.00, 50, 'Activo', 10, 1, 20),
+(66, '1 1/2 C14', 405.00, 521.00, 50, 'Activo', 10, 1, 21),
+(67, '1 1/2 C16', 342.00, 440.00, 50, 'Activo', 10, 1, 22),
+(68, '2 C12', 751.00, 966.00, 50, 'Activo', 10, 1, 23),
+(69, '2 C14', 555.00, 715.00, 50, 'Activo', 10, 1, 24),
+(70, '2 C16', 470.00, 605.00, 50, 'Activo', 10, 1, 25),
+(71, '2X1 C14', 398.00, 512.00, 50, 'Activo', 10, 1, 26),
+(72, '2X1 C16', 339.00, 437.00, 50, 'Activo', 10, 1, 27),
+(73, '2 1/2 C11', 1046.00, 1347.00, 50, 'Activo', 10, 1, 28),
+(74, '2 1/2 C14', 663.00, 854.00, 50, 'Activo', 10, 1, 29),
+(75, '2-1/2 x 1-1/2 C-14', 549.00, 707.00, 50, 'Activo', 10, 1, 30),
+(76, '3 C8', 1661.00, 2138.00, 50, 'Activo', 10, 1, 31),
+(77, '3 C11', 1283.00, 1652.00, 50, 'Activo', 10, 1, 32),
+(78, '3 C14', 831.00, 1070.00, 50, 'Activo', 10, 1, 33),
+(79, '3 1/2 C10', 1879.00, 2420.00, 50, 'Activo', 10, 1, 34),
+(80, '3 1/2 C11', 1474.00, 1897.00, 50, 'Activo', 10, 1, 35),
+(81, '3X1 1/2 C14', 630.00, 811.00, 50, 'Activo', 10, 1, 36),
+(82, '3X2 C11', 1060.00, 1365.00, 50, 'Activo', 10, 1, 37),
+(83, '3X2 C-14', 679.00, 874.00, 50, 'Activo', 10, 1, 38),
+(84, '4 C11', 1761.00, 2268.00, 50, 'Activo', 10, 1, 39),
+(85, '4 C14', 1100.00, 1417.00, 50, 'Activo', 10, 1, 40),
+(86, '4X1 1/2 C-14', 766.00, 986.00, 50, 'Activo', 10, 1, 41),
+(87, '4X2 C-11', 1275.00, 1641.00, 50, 'Activo', 10, 1, 42),
+(88, '4X2 C14', 794.00, 1022.00, 50, 'Activo', 10, 1, 43),
+(89, '6X2 C-14', 1135.00, 1461.00, 50, 'Activo', 10, 1, 44),
+(90, 'PTR galv 1 1/2', 498.00, 641.00, 50, 'Activo', 10, 1, 45),
+(91, 'PTR galv 1 3/4', 584.00, 751.00, 50, 'Activo', 10, 1, 46),
+(92, 'PTR galv 2', 682.00, 878.00, 50, 'Activo', 10, 1, 47),
+(93, '1/2', 175.00, 225.00, 50, 'Activo', 11, 1, 48),
+(94, '3/4', 217.00, 279.00, 50, 'Activo', 11, 1, 49),
+(95, '1', 273.00, 352.00, 50, 'Activo', 11, 1, 50),
+(96, '1 1/4', 435.00, 559.00, 50, 'Activo', 11, 1, 51),
+(97, '1 1/2', 500.00, 643.00, 50, 'Activo', 11, 1, 52),
+(98, '2', 719.00, 926.00, 50, 'Activo', 11, 1, 53),
+(99, '2 1/2', 983.00, 1265.00, 47, 'Activo', 11, 1, 54),
+(100, '3', 1243.00, 1600.00, 50, 'Activo', 11, 1, 55),
+(101, '4', 1564.00, 2014.00, 50, 'Activo', 11, 1, 56),
+(102, '1', 512.00, 660.00, 50, 'Activo', 12, 1, 57),
+(103, '3', 2460.00, 3167.00, 50, 'Activo', 12, 1, 58),
+(104, '1 3/8', 173.00, 223.00, 50, 'Activo', 13, 1, 59),
+(105, '1 1/2', 267.00, 344.00, 50, 'Activo', 13, 1, 60),
+(106, '2', 342.00, 440.00, 50, 'Activo', 13, 1, 61),
+(107, '101', 244.00, 313.00, 50, 'Activo', 19, 1, 62),
+(108, '103', 285.00, 367.00, 50, 'Activo', 19, 1, 63),
+(109, '106', 277.00, 356.00, 50, 'Activo', 19, 1, 64),
+(110, '116', 305.00, 393.00, 50, 'Activo', 19, 1, 65),
+(111, '122', 268.00, 344.00, 50, 'Activo', 19, 1, 66),
+(112, '123', 272.00, 351.00, 50, 'Activo', 19, 1, 67),
+(113, '124', 137.00, 176.00, 50, 'Activo', 19, 1, 68),
+(114, '126', 343.00, 441.00, 50, 'Activo', 19, 1, 69),
+(115, '127', 375.00, 483.00, 50, 'Activo', 19, 1, 70),
+(116, '154 C-18', 50.00, 65.00, 50, 'Activo', 19, 1, 71),
+(117, '154 C-20', 39.00, 50.00, 50, 'Activo', 19, 1, 72),
+(118, '159', 352.00, 453.00, 50, 'Activo', 19, 1, 73),
+(119, '160', 294.00, 379.00, 50, 'Activo', 19, 1, 74),
+(120, '170', 319.00, 411.00, 50, 'Activo', 19, 1, 75),
+(121, '171', 174.00, 224.00, 50, 'Activo', 19, 1, 76),
+(122, '1400', 246.00, 316.00, 50, 'Activo', 19, 1, 77),
+(123, '1500', 605.00, 779.00, 50, 'Activo', 19, 1, 78),
+(124, 'C050', 103.00, 132.00, 50, 'Activo', 19, 1, 79),
+(125, 'C075', 143.00, 184.00, 50, 'Activo', 19, 1, 80),
+(126, 'C100', 190.00, 244.00, 50, 'Activo', 19, 1, 81),
+(127, 'C125', 238.00, 307.00, 50, 'Activo', 19, 1, 82),
+(128, 'C150', 288.00, 370.00, 50, 'Activo', 19, 1, 83),
+(129, 'C200', 392.00, 505.00, 50, 'Activo', 19, 1, 84),
+(130, 'K100', 307.00, 395.00, 50, 'Activo', 19, 1, 85),
+(131, 'K200', 413.00, 532.00, 50, 'Activo', 19, 1, 86),
+(132, 'K300', 508.00, 654.00, 50, 'Activo', 19, 1, 87),
+(133, 'M225', 255.00, 329.00, 50, 'Activo', 19, 1, 88),
+(134, 'P100', 268.00, 345.00, 50, 'Activo', 19, 1, 89),
+(135, 'P150', 320.00, 412.00, 50, 'Activo', 19, 1, 90),
+(136, 'P200', 370.00, 477.00, 50, 'Activo', 19, 1, 91),
+(137, 'P250', 420.00, 541.00, 50, 'Activo', 19, 1, 92),
+(138, 'P300', 465.00, 598.00, 50, 'Activo', 19, 1, 93),
+(139, 'P400', 562.00, 723.00, 50, 'Activo', 19, 1, 94),
+(140, 'R100', 141.00, 181.00, 50, 'Activo', 19, 1, 95),
+(141, 'R125', 192.00, 247.00, 50, 'Activo', 19, 1, 96),
+(142, 'R150', 189.00, 243.00, 50, 'Activo', 19, 1, 97),
+(143, 'R175', 243.00, 312.00, 50, 'Activo', 19, 1, 98),
+(144, 'R200', 287.00, 369.00, 50, 'Activo', 19, 1, 99),
+(145, 'R229', 243.00, 313.00, 50, 'Activo', 19, 1, 100),
+(146, 'R249', 361.00, 464.00, 50, 'Activo', 19, 1, 101),
+(147, 'R225', 289.00, 372.00, 50, 'Activo', 19, 1, 102),
+(148, 'R250', 391.00, 503.00, 50, 'Activo', 19, 1, 103),
+(149, 'R300', 428.00, 551.00, 50, 'Activo', 19, 1, 104),
+(150, 'R400', 529.00, 680.00, 50, 'Activo', 19, 1, 105),
+(151, 'K400 (3MT)', 653.00, 841.00, 50, 'Activo', 19, 1, 106),
+(152, '1/2', 83.00, 107.00, 50, 'Activo', 18, 1, 107),
+(153, '5/8 C18', 105.00, 135.00, 50, 'Activo', 18, 1, 108),
+(154, '3/4 C18', 111.00, 143.00, 50, 'Activo', 17, 1, 109),
+(155, '1 C16', 186.00, 240.00, 50, 'Activo', 17, 1, 110),
+(156, '1 C18', 149.00, 192.00, 50, 'Activo', 17, 1, 111),
+(157, '1-1/4 C18', 193.00, 249.00, 50, 'Activo', 17, 1, 112),
+(158, '1-1/2 C18', 232.00, 299.00, 50, 'Activo', 17, 1, 113),
+(159, '2 C16', 0.00, 0.00, 50, 'Activo', 17, 1, 114),
+(160, '2 C18', 306.00, 394.00, 50, 'Activo', 17, 1, 115),
+(161, '3 C18', 470.00, 605.00, 50, 'Activo', 17, 1, 116),
+(162, 'Chico 3x3', 206.00, 265.00, 50, 'Activo', 16, 1, 117),
+(163, 'Grande 3x10', 682.00, 878.00, 50, 'Activo', 16, 1, 118),
+(164, 'Mediano 3x6.4', 425.00, 547.00, 50, 'Activo', 16, 1, 119),
+(165, 'Doble vista 3x3', 228.00, 293.00, 50, 'Activo', 16, 1, 120),
+(166, '101', 186.00, 239.00, 50, 'Activo', 15, 1, 121),
+(167, '103', 219.00, 282.00, 50, 'Activo', 15, 1, 122),
+(168, '126', 261.00, 335.00, 50, 'Activo', 15, 1, 123),
+(169, 'C075', 107.00, 137.00, 50, 'Activo', 15, 1, 124),
+(170, 'C100', 144.00, 185.00, 50, 'Activo', 15, 1, 125),
+(171, 'C-150', 219.00, 282.00, 50, 'Activo', 15, 1, 126),
+(172, 'P-100', 204.00, 263.00, 50, 'Activo', 15, 1, 127),
+(173, 'P-150', 249.00, 320.00, 50, 'Activo', 15, 1, 128),
+(174, 'K-150', 288.00, 371.00, 50, 'Activo', 15, 1, 129),
+(175, 'R100', 106.00, 137.00, 50, 'Activo', 15, 1, 130),
+(176, 'R200', 219.00, 281.00, 50, 'Activo', 15, 1, 131),
+(177, 'Base tinaco', 0.00, 1962.00, 50, 'Activo', 14, 1, 132),
+(178, '101', 283.00, 364.00, 50, 'Activo', 20, 1, 133),
+(179, '103', 326.00, 420.00, 50, 'Activo', 20, 1, 134),
+(180, '122', 291.00, 374.00, 50, 'Activo', 20, 1, 135),
+(181, '123', 311.00, 401.00, 50, 'Activo', 20, 1, 136),
+(182, '124', 156.00, 200.00, 50, 'Activo', 20, 1, 137),
+(183, '126', 387.00, 498.00, 50, 'Activo', 20, 1, 138),
+(184, '127', 448.00, 576.00, 50, 'Activo', 20, 1, 139),
+(185, '170', 349.00, 450.00, 50, 'Activo', 20, 1, 140),
+(186, '1400', 279.00, 359.00, 50, 'Activo', 20, 1, 141),
+(187, '1500', 667.00, 859.00, 50, 'Activo', 20, 1, 142),
+(188, 'C-075', 157.00, 201.00, 50, 'Activo', 20, 1, 143),
+(189, 'C-100', 208.00, 267.00, 50, 'Activo', 20, 1, 144),
+(190, 'C-125', 273.00, 352.00, 50, 'Activo', 20, 1, 145),
+(191, 'C-150', 331.00, 427.00, 50, 'Activo', 20, 1, 146),
+(192, 'K-100', 353.00, 455.00, 50, 'Activo', 20, 1, 147),
+(193, 'K-150', 428.00, 551.00, 50, 'Activo', 20, 1, 148),
+(194, 'K-300', 572.00, 736.00, 50, 'Activo', 20, 1, 149),
+(195, 'P-100', 302.00, 389.00, 50, 'Activo', 20, 1, 150),
+(196, 'P-150', 365.00, 470.00, 50, 'Activo', 20, 1, 151),
+(197, 'P-200', 436.00, 561.00, 50, 'Activo', 20, 1, 152),
+(198, 'P-300', 530.00, 682.00, 50, 'Activo', 20, 1, 153),
+(199, 'P-400', 630.00, 811.00, 50, 'Activo', 20, 1, 154),
+(200, 'R-100', 159.00, 204.00, 50, 'Activo', 20, 1, 155),
+(201, 'R-125', 212.00, 273.00, 50, 'Activo', 20, 1, 156),
+(202, 'R-200', 318.00, 409.00, 50, 'Activo', 20, 1, 157),
+(203, 'R-300', 477.00, 614.00, 50, 'Activo', 20, 1, 158),
+(204, '3/4 X 1/8', 136.00, 178.00, 50, 'Activo', 2, 1, 159),
+(205, '1 X 1/8', 170.00, 223.00, 50, 'Activo', 2, 1, 160),
+(206, '1 X 3/16', 244.00, 320.00, 50, 'Activo', 2, 1, 161),
+(207, '1-1/4 X 1/8', 214.00, 281.00, 50, 'Activo', 2, 1, 162),
+(208, '1-1/4 X 3/16', 302.00, 396.00, 50, 'Activo', 2, 1, 163),
+(209, '1-1/4 X 1/4', 387.00, 507.00, 50, 'Activo', 2, 1, 164),
+(210, '1-1/2 X 1/8', 261.00, 341.00, 50, 'Activo', 2, 1, 165),
+(211, '1-1/2 X 3/16', 392.00, 514.00, 50, 'Activo', 2, 1, 166),
+(212, '1-1/2 X 1/4', 564.00, 740.00, 50, 'Activo', 2, 1, 167),
+(213, '2 X 1/8', 377.00, 493.00, 50, 'Activo', 2, 1, 168),
+(214, '2 X 3/16', 525.00, 688.00, 50, 'Activo', 2, 1, 169),
+(215, '2 X 1/4', 724.00, 949.00, 50, 'Activo', 2, 1, 170),
+(216, '2-1/2 X 3/16', 697.00, 913.00, 50, 'Activo', 2, 1, 171),
+(217, '2-1/2 X 1/4', 915.00, 1199.00, 50, 'Activo', 2, 1, 172),
+(218, '3 X 1/8', 564.00, 740.00, 50, 'Activo', 2, 1, 173),
+(219, '3 X 3/16', 834.00, 1093.00, 50, 'Activo', 2, 1, 174),
+(220, '3 X 1/4', 1087.00, 1424.00, 50, 'Activo', 2, 1, 175),
+(221, '4 X 3/16', 0.00, 0.00, 50, 'Activo', 2, 1, 176),
+(222, '4 X 1/4', 1483.00, 1943.00, 50, 'Activo', 2, 1, 177),
+(223, '3/4 X 109', 117.00, 153.00, 50, 'Activo', 3, 1, 178),
+(224, '1 X 109', 147.00, 192.00, 50, 'Activo', 3, 1, 179),
+(225, '1 1/4 X 109', 187.00, 246.00, 50, 'Activo', 3, 1, 180),
+(226, '1 1/2 X 109', 234.00, 306.00, 50, 'Activo', 3, 1, 181),
+(227, '3/8', 100.00, 130.00, 50, 'Activo', 4, 1, 182),
+(228, '12MM', 166.00, 213.00, 50, 'Activo', 4, 1, 183),
+(229, '1/2', 172.00, 226.00, 50, 'Activo', 4, 1, 184),
+(230, '5/8', 269.00, 353.00, 50, 'Activo', 4, 1, 185),
+(231, '3/4', 381.00, 500.00, 50, 'Activo', 4, 1, 186),
+(232, '1', 730.00, 957.00, 50, 'Activo', 4, 1, 187),
+(233, '3/16', 20.00, 26.00, 50, 'Activo', 5, 1, 188),
+(234, '1/4', 36.00, 47.00, 50, 'Activo', 5, 1, 189),
+(235, '5/16', 59.00, 77.00, 50, 'Activo', 5, 1, 190),
+(236, '3/8', 81.00, 106.00, 50, 'Activo', 5, 1, 191),
+(237, '1/2', 136.00, 178.00, 50, 'Activo', 5, 1, 192),
+(238, '5/8', 201.00, 263.00, 50, 'Activo', 5, 1, 193),
+(239, '3/4', 302.00, 396.00, 50, 'Activo', 5, 1, 194),
+(240, '12MM', 122.00, 159.00, 50, 'Activo', 5, 1, 195),
+(241, '1', 562.00, 737.00, 50, 'Activo', 5, 1, 196),
+(242, '1 1/4', 0.00, 0.00, 50, 'Activo', 5, 1, 197),
+(243, '3/8', 125.00, 164.00, 50, 'Activo', 6, 1, 198),
+(244, '12 MM', 166.00, 218.00, 50, 'Activo', 6, 1, 199),
+(245, '1/2', 184.00, 241.00, 50, 'Activo', 6, 1, 200),
+(246, '5/8', 287.00, 377.00, 50, 'Activo', 6, 1, 201),
+(247, '1/2 X 1/8', 53.00, 68.00, 50, 'Activo', 7, 1, 202),
+(248, '1/2 X 3/16', 75.00, 98.00, 50, 'Activo', 7, 1, 203),
+(249, '1/2 X 1/4', 114.00, 150.00, 50, 'Activo', 7, 1, 204),
+(250, '3/4 X 1/8', 80.00, 104.00, 50, 'Activo', 7, 1, 205),
+(251, '3/4 X 3/16', 117.00, 153.00, 50, 'Activo', 7, 1, 206),
+(252, '3/4 X 1/4', 151.00, 198.00, 50, 'Activo', 7, 1, 207),
+(253, '1 X 1/8 placa', 103.00, 135.00, 50, 'Activo', 7, 1, 208),
+(254, '1 X 3/16', 145.00, 189.00, 50, 'Activo', 7, 1, 209),
+(255, '1 X 1/4', 201.00, 263.00, 50, 'Activo', 7, 1, 210),
+(256, '1 X 3/8', 283.00, 371.00, 50, 'Activo', 7, 1, 211),
+(257, '1-1/4 X 1/8', 133.00, 174.00, 50, 'Activo', 7, 1, 212),
+(258, '1-1/4 X 3/16', 176.00, 230.00, 50, 'Activo', 7, 1, 213),
+(259, '1-1/4 X 1/4', 243.00, 319.00, 50, 'Activo', 7, 1, 214),
+(260, '1-1/4 X 3/8', 361.00, 473.00, 50, 'Activo', 7, 1, 215),
+(261, '1-1/2 X 1/8', 159.00, 208.00, 50, 'Activo', 7, 1, 216),
+(262, '1-1/2 X 3/16', 210.00, 276.00, 50, 'Activo', 7, 1, 217),
+(263, '1-1/2 X 1/4', 279.00, 366.00, 50, 'Activo', 7, 1, 218),
+(264, '1-1/2 X 3/8', 426.00, 559.00, 50, 'Activo', 7, 1, 219),
+(265, '1-1/2 X 1/2', 576.00, 755.00, 50, 'Activo', 7, 1, 220),
+(266, '2 X 1/8', 215.00, 281.00, 50, 'Activo', 7, 1, 221),
+(267, '2 X 3/16', 279.00, 366.00, 50, 'Activo', 7, 1, 222),
+(268, '2 X 1/4', 404.00, 520.00, 50, 'Activo', 7, 1, 223),
+(269, '2 X 3/8', 582.00, 763.00, 50, 'Activo', 7, 1, 224),
+(270, '2-1/2 X 1/8', 254.00, 333.00, 50, 'Activo', 7, 1, 225),
+(271, '2-1/2 X 3/16', 360.00, 470.00, 50, 'Activo', 7, 1, 226),
+(272, '2-1/2 X 3/8', 721.00, 945.00, 50, 'Activo', 7, 1, 227),
+(273, '3 X 1/8 placa', 288.00, 378.00, 50, 'Activo', 7, 1, 228),
+(274, '3 X 3/16 placa', 461.00, 604.00, 50, 'Activo', 7, 1, 229),
+(275, '3 X 1/4', 581.00, 761.00, 50, 'Activo', 7, 1, 230),
+(276, '3 X 3/8', 871.00, 1142.00, 50, 'Activo', 7, 1, 231),
+(277, '4 X 3/16', 566.00, 742.00, 50, 'Activo', 7, 1, 232),
+(278, '4 X 1/4', 773.00, 1013.00, 50, 'Activo', 7, 1, 233),
+(279, '4 X 3/8', 1151.00, 1509.00, 50, 'Activo', 7, 1, 234),
+(280, '1 X 1/8', 202.00, 264.00, 50, 'Activo', 8, 1, 235),
+(281, 'Tubo', 15.00, 30.00, 50, 'Inactivo', 7, 3, 300);
 
 --
--- Triggers `Productos`
+-- Disparadores `productos`
 --
+DROP TRIGGER IF EXISTS `ProductoDeleteAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ProductoDeleteAuditoriaAfter` AFTER DELETE ON `Productos` FOR EACH ROW BEGIN
+CREATE TRIGGER `ProductoDeleteAuditoriaAfter` AFTER DELETE ON `productos` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Eliminacion', 'Productos', 'Nombre', OLD.Nombre, NULL, @id_empleado_sesion);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ProductoInsertAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ProductoInsertAuditoriaAfter` AFTER INSERT ON `Productos` FOR EACH ROW BEGIN
+CREATE TRIGGER `ProductoInsertAuditoriaAfter` AFTER INSERT ON `productos` FOR EACH ROW BEGIN
     INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
     VALUES ('Creacion', 'Productos', 'Nombre', NULL, NEW.Nombre, @id_empleado_sesion);
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ProductoInsertBefore`;
 DELIMITER $$
-CREATE TRIGGER `ProductoInsertBefore` BEFORE INSERT ON `Productos` FOR EACH ROW BEGIN
+CREATE TRIGGER `ProductoInsertBefore` BEFORE INSERT ON `productos` FOR EACH ROW BEGIN
     IF NEW.Stock = 0 OR NEW.PrecioVenta < NEW.PrecioCompra THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Stock no puede ser 0 ni el precio de venta menor al de compra.';
@@ -32250,45 +32865,46 @@ CREATE TRIGGER `ProductoInsertBefore` BEFORE INSERT ON `Productos` FOR EACH ROW 
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ProductoUpdateAuditoriaAfter`;
 DELIMITER $$
-CREATE TRIGGER `ProductoUpdateAuditoriaAfter` AFTER UPDATE ON `Productos` FOR EACH ROW BEGIN
-    -- Stock
+CREATE TRIGGER `ProductoUpdateAuditoriaAfter` AFTER UPDATE ON `productos` FOR EACH ROW BEGIN
+    
     IF NEW.Stock <> OLD.Stock THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'Stock', OLD.Stock, NEW.Stock, @id_empleado_sesion);
     END IF;
 
-    -- Nombre
+    
     IF NEW.Nombre <> OLD.Nombre THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'Nombre', OLD.Nombre, NEW.Nombre, @id_empleado_sesion);
     END IF;
 
-    -- PrecioCompra
+    
     IF NEW.PrecioCompra <> OLD.PrecioCompra THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'PrecioCompra', OLD.PrecioCompra, NEW.PrecioCompra, @id_empleado_sesion);
     END IF;
 
-    -- PrecioVenta
+    
     IF NEW.PrecioVenta <> OLD.PrecioVenta THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'PrecioVenta', OLD.PrecioVenta, NEW.PrecioVenta, @id_empleado_sesion);
     END IF;
 
-    -- Estado
+    
     IF NEW.Estado <> OLD.Estado THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'Estado', OLD.Estado, NEW.Estado, @id_empleado_sesion);
     END IF;
 
-    -- idCategoria
+    
     IF NEW.idCategoria <> OLD.idCategoria THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'idCategoria', OLD.idCategoria, NEW.idCategoria, @id_empleado_sesion);
     END IF;
 
-    -- idProveedor
+    
     IF NEW.idProveedor <> OLD.idProveedor THEN
         INSERT INTO HistorialModificaciones (Movimiento, TablaAfectada, ColumnaAfectada, DatoAnterior, DatoNuevo, idEmpleado)
         VALUES ('Modificacion', 'Productos', 'idProveedor', OLD.idProveedor, NEW.idProveedor, @id_empleado_sesion);
@@ -32296,8 +32912,9 @@ CREATE TRIGGER `ProductoUpdateAuditoriaAfter` AFTER UPDATE ON `Productos` FOR EA
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `ProductoUpdateBefore`;
 DELIMITER $$
-CREATE TRIGGER `ProductoUpdateBefore` BEFORE UPDATE ON `Productos` FOR EACH ROW BEGIN
+CREATE TRIGGER `ProductoUpdateBefore` BEFORE UPDATE ON `productos` FOR EACH ROW BEGIN
     IF NEW.Stock = 0 OR NEW.PrecioVenta < NEW.PrecioCompra THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Stock no puede ser 0 ni el precio de venta menor al de compra.';
@@ -32305,8 +32922,9 @@ CREATE TRIGGER `ProductoUpdateBefore` BEFORE UPDATE ON `Productos` FOR EACH ROW 
 END
 $$
 DELIMITER ;
+DROP TRIGGER IF EXISTS `PromocionExistenciaBaja`;
 DELIMITER $$
-CREATE TRIGGER `PromocionExistenciaBaja` AFTER UPDATE ON `Productos` FOR EACH ROW BEGIN
+CREATE TRIGGER `PromocionExistenciaBaja` AFTER UPDATE ON `productos` FOR EACH ROW BEGIN
     IF NEW.Stock < 10 AND OLD.Stock >= 10 THEN
         INSERT INTO Descuentos (Categoria, Porcentaje)
         VALUES (CONCAT('Promo ', NEW.Nombre), 15.00);
@@ -32318,59 +32936,64 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Proveedores`
+-- Estructura de tabla para la tabla `proveedores`
 --
 
-CREATE TABLE `Proveedores` (
-  `idProveedor` int NOT NULL,
+DROP TABLE IF EXISTS `proveedores`;
+CREATE TABLE `proveedores` (
+  `idProveedor` int(11) NOT NULL,
   `Nombre` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Proveedores`
+-- Volcado de datos para la tabla `proveedores`
 --
 
-INSERT INTO `Proveedores` (`idProveedor`, `Nombre`) VALUES
+INSERT INTO `proveedores` (`idProveedor`, `Nombre`) VALUES
 (1, 'Aceros León'),
-(2, 'Sebastian Rangel');
+(2, 'Sebastian Rangel'),
+(3, 'TRUPPER');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Temp_Ventas`
+-- Estructura de tabla para la tabla `temp_ventas`
 --
 
-CREATE TABLE `Temp_Ventas` (
-  `idEmpleado` int NOT NULL,
-  `idProducto` int NOT NULL,
-  `Cantidad` int NOT NULL
-) ;
+DROP TABLE IF EXISTS `temp_ventas`;
+CREATE TABLE `temp_ventas` (
+  `idEmpleado` int(11) NOT NULL,
+  `idProducto` int(11) NOT NULL,
+  `Cantidad` int(11) NOT NULL,
+  `PrecioFinal` decimal(10,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `Ventas`
+-- Estructura de tabla para la tabla `ventas`
 --
 
-CREATE TABLE `Ventas` (
-  `idVenta` int NOT NULL,
+DROP TABLE IF EXISTS `ventas`;
+CREATE TABLE `ventas` (
+  `idVenta` int(11) NOT NULL,
   `Monto` decimal(10,2) NOT NULL,
-  `Fecha` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Fecha` datetime NOT NULL DEFAULT current_timestamp(),
   `Subtotal` decimal(10,2) NOT NULL,
   `IVA` decimal(10,2) NOT NULL,
   `IEPS` decimal(10,2) NOT NULL,
-  `CantidadProductos` int NOT NULL,
+  `CantidadProductos` int(11) NOT NULL,
   `TipoPago` enum('Contado','Cheque','Transferencia','Credito') NOT NULL,
   `Estatus` enum('Cancelada','Pagada','En Espera de Pago') NOT NULL DEFAULT 'En Espera de Pago',
-  `idCliente` int NOT NULL,
-  `idEmpleado` int NOT NULL
-) ;
+  `idCliente` int(11) NOT NULL,
+  `idEmpleado` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `Ventas`
+-- Volcado de datos para la tabla `ventas`
 --
 
-INSERT INTO `Ventas` (`idVenta`, `Monto`, `Fecha`, `Subtotal`, `IVA`, `IEPS`, `CantidadProductos`, `TipoPago`, `Estatus`, `idCliente`, `idEmpleado`) VALUES
+INSERT INTO `ventas` (`idVenta`, `Monto`, `Fecha`, `Subtotal`, `IVA`, `IEPS`, `CantidadProductos`, `TipoPago`, `Estatus`, `idCliente`, `idEmpleado`) VALUES
 (2, 150.00, '2025-05-30 23:08:09', 129.31, 20.69, 0.00, 1, 'Contado', 'Pagada', 5, 1),
 (25, 558.00, '2025-06-01 20:45:53', 450.00, 72.00, 36.00, 3, 'Contado', 'Pagada', 6, 1),
 (26, 186.00, '2025-06-01 21:06:28', 150.00, 24.00, 12.00, 1, 'Contado', 'Pagada', 6, 1),
@@ -32385,13 +33008,22 @@ INSERT INTO `Ventas` (`idVenta`, `Monto`, `Fecha`, `Subtotal`, `IVA`, `IEPS`, `C
 (35, 2046.00, '2025-06-01 21:45:37', 1650.00, 264.00, 132.00, 11, 'Credito', 'En Espera de Pago', 5, 1),
 (36, 62.00, '2025-06-02 05:27:44', 50.00, 8.00, 4.00, 1, 'Contado', 'Pagada', 6, 1),
 (38, 62.00, '2025-06-03 03:41:04', 50.00, 8.00, 4.00, 1, 'Credito', 'En Espera de Pago', 8, 1),
-(39, 186.00, '2025-06-03 03:50:23', 150.00, 24.00, 12.00, 1, 'Credito', 'En Espera de Pago', 8, 16);
+(39, 186.00, '2025-06-03 03:50:23', 150.00, 24.00, 12.00, 1, 'Credito', 'En Espera de Pago', 8, 16),
+(40, 186.00, '2025-06-03 13:08:05', 150.00, 24.00, 12.00, 1, 'Contado', 'Pagada', 5, 1),
+(41, 372.00, '2025-06-04 09:10:53', 300.00, 48.00, 24.00, 2, 'Contado', 'Pagada', 6, 1),
+(42, 241.80, '2025-06-04 14:37:30', 195.00, 31.20, 15.60, 13, 'Contado', 'Pagada', 6, 1),
+(43, 279.00, '2025-06-04 14:38:58', 225.00, 36.00, 18.00, 15, 'Contado', 'Pagada', 5, 1),
+(44, 0.00, '2025-06-05 09:00:42', 0.00, 0.00, 0.00, 0, 'Contado', 'Cancelada', 9, 1),
+(45, 1863.72, '2025-06-05 09:03:52', 1503.00, 240.48, 120.24, 3, 'Contado', 'Pagada', 5, 1),
+(46, 4705.80, '2025-06-05 09:14:36', 3795.00, 607.20, 303.60, 3, 'Contado', 'Pagada', 11, 1),
+(47, 1863.72, '2025-06-05 09:16:07', 1503.00, 240.48, 120.24, 3, 'Contado', 'Pagada', 10, 19);
 
 --
--- Triggers `Ventas`
+-- Disparadores `ventas`
 --
+DROP TRIGGER IF EXISTS `VerificarCreditoClienteBefore`;
 DELIMITER $$
-CREATE TRIGGER `VerificarCreditoClienteBefore` BEFORE INSERT ON `Ventas` FOR EACH ROW BEGIN
+CREATE TRIGGER `VerificarCreditoClienteBefore` BEFORE INSERT ON `ventas` FOR EACH ROW BEGIN
     DECLARE creditoDisponible DECIMAL(10,2);
 
     IF NEW.TipoPago = 'Credito' THEN
@@ -32411,23 +33043,25 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaarticulosimplificado`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaarticulosimplificado`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaarticulosimplificado`;
 CREATE TABLE `vistaarticulosimplificado` (
 `Nombre` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`Precio` decimal(10,2)
 );
 
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaclientesactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaclientesactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaclientesactivos`;
 CREATE TABLE `vistaclientesactivos` (
-`idCliente` int
+`idCliente` int(11)
 ,`Nombre` varchar(50)
 ,`Paterno` varchar(50)
 ,`Materno` varchar(50)
@@ -32441,11 +33075,12 @@ CREATE TABLE `vistaclientesactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaclientesinactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaclientesinactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaclientesinactivos`;
 CREATE TABLE `vistaclientesinactivos` (
-`idCliente` int
+`idCliente` int(11)
 ,`Nombre` varchar(50)
 ,`Paterno` varchar(50)
 ,`Materno` varchar(50)
@@ -32459,19 +33094,20 @@ CREATE TABLE `vistaclientesinactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaempleadosactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaempleadosactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaempleadosactivos`;
 CREATE TABLE `vistaempleadosactivos` (
-`idEmpleado` int
+`idEmpleado` int(11)
 ,`Nombre` varchar(50)
 ,`Paterno` varchar(50)
 ,`Materno` varchar(50)
 ,`Telefono` varchar(10)
 ,`Email` varchar(50)
-,`Edad` smallint
+,`Edad` smallint(6)
 ,`Sexo` enum('H','M')
-,`idDomicilio` int
+,`idDomicilio` int(11)
 ,`Puesto` enum('Administrador','Cajero','Agente de Venta')
 ,`RFC` varchar(13)
 ,`NumeroSeguroSocial` varchar(11)
@@ -32481,19 +33117,20 @@ CREATE TABLE `vistaempleadosactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaempleadosinactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaempleadosinactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaempleadosinactivos`;
 CREATE TABLE `vistaempleadosinactivos` (
-`idEmpleado` int
+`idEmpleado` int(11)
 ,`Nombre` varchar(50)
 ,`Paterno` varchar(50)
 ,`Materno` varchar(50)
 ,`Telefono` varchar(10)
 ,`Email` varchar(50)
-,`Edad` smallint
+,`Edad` smallint(6)
 ,`Sexo` enum('H','M')
-,`idDomicilio` int
+,`idDomicilio` int(11)
 ,`Puesto` enum('Administrador','Cajero','Agente de Venta')
 ,`RFC` varchar(13)
 ,`NumeroSeguroSocial` varchar(11)
@@ -32503,35 +33140,37 @@ CREATE TABLE `vistaempleadosinactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaobtenercarritoporempleado`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaobtenercarritoporempleado`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaobtenercarritoporempleado`;
 CREATE TABLE `vistaobtenercarritoporempleado` (
-`idEmpleado` int
+`idEmpleado` int(11)
 ,`Producto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`Total` decimal(20,2)
 );
 
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistapedidosaceptados`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistapedidosaceptados`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistapedidosaceptados`;
 CREATE TABLE `vistapedidosaceptados` (
-`idPedido` int
+`idPedido` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado')
-,`idCliente` int
+,`idCliente` int(11)
 ,`NombreCliente` varchar(50)
-,`idEmpleado` int
+,`idEmpleado` int(11)
 ,`NombreEmpleado` varchar(50)
-,`idDetallePedido` int
-,`idProducto` int
+,`idDetallePedido` int(11)
+,`idProducto` int(11)
 ,`NombreProducto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(10,2)
 ,`Subtotal` decimal(10,2)
 );
@@ -32539,22 +33178,23 @@ CREATE TABLE `vistapedidosaceptados` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistapedidoscanselados`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistapedidoscanselados`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistapedidoscanselados`;
 CREATE TABLE `vistapedidoscanselados` (
-`idPedido` int
+`idPedido` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado')
-,`idCliente` int
+,`idCliente` int(11)
 ,`NombreCliente` varchar(50)
-,`idEmpleado` int
+,`idEmpleado` int(11)
 ,`NombreEmpleado` varchar(50)
-,`idDetallePedido` int
-,`idProducto` int
+,`idDetallePedido` int(11)
+,`idProducto` int(11)
 ,`NombreProducto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(10,2)
 ,`Subtotal` decimal(10,2)
 );
@@ -32562,22 +33202,23 @@ CREATE TABLE `vistapedidoscanselados` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistapedidosconproductos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistapedidosconproductos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistapedidosconproductos`;
 CREATE TABLE `vistapedidosconproductos` (
-`idPedido` int
+`idPedido` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado')
-,`idCliente` int
+,`idCliente` int(11)
 ,`NombreCliente` varchar(50)
-,`idEmpleado` int
+,`idEmpleado` int(11)
 ,`NombreEmpleado` varchar(50)
-,`idDetallePedido` int
-,`idProducto` int
+,`idDetallePedido` int(11)
+,`idProducto` int(11)
 ,`NombreProducto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(10,2)
 ,`Subtotal` decimal(10,2)
 );
@@ -32585,22 +33226,23 @@ CREATE TABLE `vistapedidosconproductos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistapedidosenviados`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistapedidosenviados`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistapedidosenviados`;
 CREATE TABLE `vistapedidosenviados` (
-`idPedido` int
+`idPedido` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado')
-,`idCliente` int
+,`idCliente` int(11)
 ,`NombreCliente` varchar(50)
-,`idEmpleado` int
+,`idEmpleado` int(11)
 ,`NombreEmpleado` varchar(50)
-,`idDetallePedido` int
-,`idProducto` int
+,`idDetallePedido` int(11)
+,`idProducto` int(11)
 ,`NombreProducto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(10,2)
 ,`Subtotal` decimal(10,2)
 );
@@ -32608,22 +33250,23 @@ CREATE TABLE `vistapedidosenviados` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistapedidospendientes`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistapedidospendientes`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistapedidospendientes`;
 CREATE TABLE `vistapedidospendientes` (
-`idPedido` int
+`idPedido` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Estatus` enum('Pendiente','Aceptado','Enviado','Cancelado')
-,`idCliente` int
+,`idCliente` int(11)
 ,`NombreCliente` varchar(50)
-,`idEmpleado` int
+,`idEmpleado` int(11)
 ,`NombreEmpleado` varchar(50)
-,`idDetallePedido` int
-,`idProducto` int
+,`idDetallePedido` int(11)
+,`idProducto` int(11)
 ,`NombreProducto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(10,2)
 ,`Subtotal` decimal(10,2)
 );
@@ -32631,15 +33274,16 @@ CREATE TABLE `vistapedidospendientes` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaproductosactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaproductosactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaproductosactivos`;
 CREATE TABLE `vistaproductosactivos` (
-`idProducto` int
+`idProducto` int(11)
 ,`Producto` varchar(100)
 ,`Categoria` varchar(100)
 ,`Proveedor` varchar(100)
-,`Stock` int
+,`Stock` int(11)
 ,`PrecioCompra` decimal(10,2)
 ,`PrecioVenta` decimal(10,2)
 ,`Estado` enum('Activo','Inactivo')
@@ -32648,15 +33292,16 @@ CREATE TABLE `vistaproductosactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaproductosinactivos`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaproductosinactivos`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaproductosinactivos`;
 CREATE TABLE `vistaproductosinactivos` (
-`idProducto` int
+`idProducto` int(11)
 ,`Producto` varchar(100)
 ,`Categoria` varchar(100)
 ,`Proveedor` varchar(100)
-,`Stock` int
+,`Stock` int(11)
 ,`PrecioCompra` decimal(10,2)
 ,`PrecioVenta` decimal(10,2)
 ,`Estado` enum('Activo','Inactivo')
@@ -32665,22 +33310,23 @@ CREATE TABLE `vistaproductosinactivos` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vistaventasdiarias`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vistaventasdiarias`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vistaventasdiarias`;
 CREATE TABLE `vistaventasdiarias` (
-`NumeroVenta` int
+`NumeroVenta` int(11)
 ,`Fecha` date
 ,`Hora` time
 ,`Empleado` varchar(152)
 ,`Cliente` varchar(152)
 ,`Producto` varchar(100)
-,`Cantidad` int
+,`Cantidad` int(11)
 ,`PrecioUnitario` decimal(14,6)
 ,`Subtotal` decimal(10,2)
 ,`IVA` decimal(10,2)
 ,`IEPS` decimal(10,2)
-,`Descuento` bigint
+,`Descuento` int(11)
 ,`TotalVenta` decimal(10,2)
 ,`TipoPago` enum('Contado','Cheque','Transferencia','Credito')
 ,`Estatus` enum('Cancelada','Pagada','En Espera de Pago')
@@ -32689,88 +33335,239 @@ CREATE TABLE `vistaventasdiarias` (
 -- --------------------------------------------------------
 
 --
--- Stand-in structure for view `vista_todos_proveedores`
--- (See below for the actual view)
+-- Estructura Stand-in para la vista `vista_todos_proveedores`
+-- (Véase abajo para la vista actual)
 --
+DROP VIEW IF EXISTS `vista_todos_proveedores`;
 CREATE TABLE `vista_todos_proveedores` (
-`idProveedor` int
+`idProveedor` int(11)
 ,`Nombre` varchar(100)
 );
 
+-- --------------------------------------------------------
+
 --
--- Indexes for dumped tables
+-- Estructura para la vista `vistaarticulosimplificado`
+--
+DROP TABLE IF EXISTS `vistaarticulosimplificado`;
+
+DROP VIEW IF EXISTS `vistaarticulosimplificado`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaarticulosimplificado`  AS SELECT `productos`.`Nombre` AS `Nombre`, `productos`.`Stock` AS `Cantidad`, `productos`.`PrecioVenta` AS `Precio` FROM `productos` ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaclientesactivos`
+--
+DROP TABLE IF EXISTS `vistaclientesactivos`;
+
+DROP VIEW IF EXISTS `vistaclientesactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaclientesactivos`  AS SELECT `c`.`idCliente` AS `idCliente`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Email` AS `Email`, `p`.`Telefono` AS `Telefono`, `c`.`Credito` AS `Credito`, `c`.`Limite` AS `Limite`, `d`.`Categoria` AS `TipoCliente` FROM ((`clientes` `c` join `personas` `p` on(`c`.`idPersona` = `p`.`idPersona`)) left join `descuentos` `d` on(`c`.`idDescuento` = `d`.`idDescuento`)) WHERE `p`.`Estatus` = 'Activo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaclientesinactivos`
+--
+DROP TABLE IF EXISTS `vistaclientesinactivos`;
+
+DROP VIEW IF EXISTS `vistaclientesinactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaclientesinactivos`  AS SELECT `c`.`idCliente` AS `idCliente`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Email` AS `Email`, `p`.`Telefono` AS `Telefono`, `c`.`Credito` AS `Credito`, `c`.`Limite` AS `Limite`, `d`.`Categoria` AS `TipoCliente` FROM ((`clientes` `c` join `personas` `p` on(`c`.`idPersona` = `p`.`idPersona`)) left join `descuentos` `d` on(`c`.`idDescuento` = `d`.`idDescuento`)) WHERE `p`.`Estatus` = 'Inactivo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaempleadosactivos`
+--
+DROP TABLE IF EXISTS `vistaempleadosactivos`;
+
+DROP VIEW IF EXISTS `vistaempleadosactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaempleadosactivos`  AS SELECT `e`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Telefono` AS `Telefono`, `p`.`Email` AS `Email`, `p`.`Edad` AS `Edad`, `p`.`Sexo` AS `Sexo`, `p`.`idDomicilio` AS `idDomicilio`, `e`.`Puesto` AS `Puesto`, `e`.`RFC` AS `RFC`, `e`.`NumeroSeguroSocial` AS `NumeroSeguroSocial`, `e`.`Usuario` AS `Usuario` FROM (`empleados` `e` join `personas` `p` on(`e`.`idPersona` = `p`.`idPersona`)) WHERE `p`.`Estatus` = 'Activo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaempleadosinactivos`
+--
+DROP TABLE IF EXISTS `vistaempleadosinactivos`;
+
+DROP VIEW IF EXISTS `vistaempleadosinactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaempleadosinactivos`  AS SELECT `e`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Telefono` AS `Telefono`, `p`.`Email` AS `Email`, `p`.`Edad` AS `Edad`, `p`.`Sexo` AS `Sexo`, `p`.`idDomicilio` AS `idDomicilio`, `e`.`Puesto` AS `Puesto`, `e`.`RFC` AS `RFC`, `e`.`NumeroSeguroSocial` AS `NumeroSeguroSocial`, `e`.`Usuario` AS `Usuario` FROM (`empleados` `e` join `personas` `p` on(`e`.`idPersona` = `p`.`idPersona`)) WHERE `p`.`Estatus` = 'Inactivo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaobtenercarritoporempleado`
+--
+DROP TABLE IF EXISTS `vistaobtenercarritoporempleado`;
+
+DROP VIEW IF EXISTS `vistaobtenercarritoporempleado`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaobtenercarritoporempleado`  AS SELECT `t`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Producto`, `t`.`Cantidad` AS `Cantidad`, `p`.`PrecioVenta`* `t`.`Cantidad` AS `Total` FROM (`temp_ventas` `t` join `productos` `p` on(`t`.`idProducto` = `p`.`idProducto`)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistapedidosaceptados`
+--
+DROP TABLE IF EXISTS `vistapedidosaceptados`;
+
+DROP VIEW IF EXISTS `vistapedidosaceptados`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosaceptados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on(`p`.`idCliente` = `cl`.`idCliente`)) join `personas` `clp` on(`cl`.`idPersona` = `clp`.`idPersona`)) left join `empleados` `e` on(`p`.`idEmpleado` = `e`.`idEmpleado`)) left join `personas` `epl` on(`e`.`idPersona` = `epl`.`idPersona`)) join `detallepedidos` `dp` on(`p`.`idPedido` = `dp`.`idPedido`)) join `productos` `prod` on(`dp`.`idProducto` = `prod`.`idProducto`)) WHERE `p`.`Estatus` = 'Aceptado' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistapedidoscanselados`
+--
+DROP TABLE IF EXISTS `vistapedidoscanselados`;
+
+DROP VIEW IF EXISTS `vistapedidoscanselados`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidoscanselados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on(`p`.`idCliente` = `cl`.`idCliente`)) join `personas` `clp` on(`cl`.`idPersona` = `clp`.`idPersona`)) left join `empleados` `e` on(`p`.`idEmpleado` = `e`.`idEmpleado`)) left join `personas` `epl` on(`e`.`idPersona` = `epl`.`idPersona`)) join `detallepedidos` `dp` on(`p`.`idPedido` = `dp`.`idPedido`)) join `productos` `prod` on(`dp`.`idProducto` = `prod`.`idProducto`)) WHERE `p`.`Estatus` = 'Cancelado' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistapedidosconproductos`
+--
+DROP TABLE IF EXISTS `vistapedidosconproductos`;
+
+DROP VIEW IF EXISTS `vistapedidosconproductos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosconproductos`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on(`p`.`idCliente` = `cl`.`idCliente`)) join `personas` `clp` on(`cl`.`idPersona` = `clp`.`idPersona`)) left join `empleados` `e` on(`p`.`idEmpleado` = `e`.`idEmpleado`)) left join `personas` `epl` on(`e`.`idPersona` = `epl`.`idPersona`)) join `detallepedidos` `dp` on(`p`.`idPedido` = `dp`.`idPedido`)) join `productos` `prod` on(`dp`.`idProducto` = `prod`.`idProducto`)) WHERE `p`.`Estatus` in ('Pendiente','Aceptado','Enviado','Cancelado') ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistapedidosenviados`
+--
+DROP TABLE IF EXISTS `vistapedidosenviados`;
+
+DROP VIEW IF EXISTS `vistapedidosenviados`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosenviados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on(`p`.`idCliente` = `cl`.`idCliente`)) join `personas` `clp` on(`cl`.`idPersona` = `clp`.`idPersona`)) left join `empleados` `e` on(`p`.`idEmpleado` = `e`.`idEmpleado`)) left join `personas` `epl` on(`e`.`idPersona` = `epl`.`idPersona`)) join `detallepedidos` `dp` on(`p`.`idPedido` = `dp`.`idPedido`)) join `productos` `prod` on(`dp`.`idProducto` = `prod`.`idProducto`)) WHERE `p`.`Estatus` = 'Enviado' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistapedidospendientes`
+--
+DROP TABLE IF EXISTS `vistapedidospendientes`;
+
+DROP VIEW IF EXISTS `vistapedidospendientes`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidospendientes`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on(`p`.`idCliente` = `cl`.`idCliente`)) join `personas` `clp` on(`cl`.`idPersona` = `clp`.`idPersona`)) left join `empleados` `e` on(`p`.`idEmpleado` = `e`.`idEmpleado`)) left join `personas` `epl` on(`e`.`idPersona` = `epl`.`idPersona`)) join `detallepedidos` `dp` on(`p`.`idPedido` = `dp`.`idPedido`)) join `productos` `prod` on(`dp`.`idProducto` = `prod`.`idProducto`)) WHERE `p`.`Estatus` = 'Pendiente' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaproductosactivos`
+--
+DROP TABLE IF EXISTS `vistaproductosactivos`;
+
+DROP VIEW IF EXISTS `vistaproductosactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaproductosactivos`  AS SELECT `p`.`idProducto` AS `idProducto`, `p`.`Nombre` AS `Producto`, `c`.`Nombre` AS `Categoria`, `pr`.`Nombre` AS `Proveedor`, `p`.`Stock` AS `Stock`, `p`.`PrecioCompra` AS `PrecioCompra`, `p`.`PrecioVenta` AS `PrecioVenta`, `p`.`Estado` AS `Estado` FROM ((`productos` `p` join `categorias` `c` on(`p`.`idCategoria` = `c`.`idCategoria`)) join `proveedores` `pr` on(`p`.`idProveedor` = `pr`.`idProveedor`)) WHERE `p`.`Estado` = 'Activo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaproductosinactivos`
+--
+DROP TABLE IF EXISTS `vistaproductosinactivos`;
+
+DROP VIEW IF EXISTS `vistaproductosinactivos`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaproductosinactivos`  AS SELECT `p`.`idProducto` AS `idProducto`, `p`.`Nombre` AS `Producto`, `c`.`Nombre` AS `Categoria`, `pr`.`Nombre` AS `Proveedor`, `p`.`Stock` AS `Stock`, `p`.`PrecioCompra` AS `PrecioCompra`, `p`.`PrecioVenta` AS `PrecioVenta`, `p`.`Estado` AS `Estado` FROM ((`productos` `p` join `categorias` `c` on(`p`.`idCategoria` = `c`.`idCategoria`)) join `proveedores` `pr` on(`p`.`idProveedor` = `pr`.`idProveedor`)) WHERE `p`.`Estado` = 'Inactivo' ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vistaventasdiarias`
+--
+DROP TABLE IF EXISTS `vistaventasdiarias`;
+
+DROP VIEW IF EXISTS `vistaventasdiarias`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaventasdiarias`  AS SELECT `v`.`idVenta` AS `NumeroVenta`, cast(`v`.`Fecha` as date) AS `Fecha`, cast(`v`.`Fecha` as time) AS `Hora`, concat(`emp`.`Nombre`,' ',`emp`.`Paterno`,' ',`emp`.`Materno`) AS `Empleado`, concat(`cli`.`Nombre`,' ',`cli`.`Paterno`,' ',`cli`.`Materno`) AS `Cliente`, `p`.`Nombre` AS `Producto`, `dv`.`Cantidad` AS `Cantidad`, `dv`.`Total`/ `dv`.`Cantidad` AS `PrecioUnitario`, `dv`.`Total` AS `Subtotal`, `dv`.`IVA` AS `IVA`, `dv`.`IEPS` AS `IEPS`, ifnull(`dv`.`idDescuento`,0) AS `Descuento`, `v`.`Monto` AS `TotalVenta`, `v`.`TipoPago` AS `TipoPago`, `v`.`Estatus` AS `Estatus` FROM ((((((`ventas` `v` join `detalleventa` `dv` on(`v`.`idVenta` = `dv`.`idVenta`)) join `productos` `p` on(`dv`.`idProducto` = `p`.`idProducto`)) join `empleados` `e` on(`v`.`idEmpleado` = `e`.`idEmpleado`)) join `personas` `emp` on(`e`.`idPersona` = `emp`.`idPersona`)) join `clientes` `c` on(`v`.`idCliente` = `c`.`idCliente`)) join `personas` `cli` on(`c`.`idPersona` = `cli`.`idPersona`)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `vista_todos_proveedores`
+--
+DROP TABLE IF EXISTS `vista_todos_proveedores`;
+
+DROP VIEW IF EXISTS `vista_todos_proveedores`;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vista_todos_proveedores`  AS SELECT `proveedores`.`idProveedor` AS `idProveedor`, `proveedores`.`Nombre` AS `Nombre` FROM `proveedores` ;
+
+--
+-- Índices para tablas volcadas
 --
 
 --
--- Indexes for table `Asentamiento`
+-- Indices de la tabla `asentamiento`
 --
-ALTER TABLE `Asentamiento`
+ALTER TABLE `asentamiento`
   ADD PRIMARY KEY (`c_tipo_asenta`),
   ADD KEY `c_mnpio` (`c_mnpio`);
 
 --
--- Indexes for table `Categorias`
+-- Indices de la tabla `categorias`
 --
-ALTER TABLE `Categorias`
+ALTER TABLE `categorias`
   ADD PRIMARY KEY (`idCategoria`),
   ADD UNIQUE KEY `Nombre` (`Nombre`);
 
 --
--- Indexes for table `Ciudad`
+-- Indices de la tabla `ciudad`
 --
-ALTER TABLE `Ciudad`
+ALTER TABLE `ciudad`
   ADD PRIMARY KEY (`c_cve_ciudad`),
   ADD KEY `c_estado` (`c_estado`);
 
 --
--- Indexes for table `Clientes`
+-- Indices de la tabla `clientes`
 --
-ALTER TABLE `Clientes`
+ALTER TABLE `clientes`
   ADD PRIMARY KEY (`idCliente`),
   ADD KEY `fk_Clientes_Personas` (`idPersona`),
   ADD KEY `fk_Clientes_Herreros` (`idDescuento`);
 
 --
--- Indexes for table `CodigosPostales`
+-- Indices de la tabla `codigospostales`
 --
-ALTER TABLE `CodigosPostales`
+ALTER TABLE `codigospostales`
   ADD PRIMARY KEY (`c_CP`),
   ADD KEY `c_tipo_asenta` (`c_tipo_asenta`);
 
 --
--- Indexes for table `Descuentos`
+-- Indices de la tabla `descuentos`
 --
-ALTER TABLE `Descuentos`
+ALTER TABLE `descuentos`
   ADD PRIMARY KEY (`idDescuento`);
 
 --
--- Indexes for table `DetallePedidos`
+-- Indices de la tabla `detallepedidos`
 --
-ALTER TABLE `DetallePedidos`
+ALTER TABLE `detallepedidos`
   ADD PRIMARY KEY (`idDetallePedido`),
   ADD KEY `fk_DetallePedidos_Pedidos` (`idPedido`),
   ADD KEY `fk_DetallePedidos_Productos` (`idProducto`);
 
 --
--- Indexes for table `DetalleVenta`
+-- Indices de la tabla `detalleventa`
 --
-ALTER TABLE `DetalleVenta`
+ALTER TABLE `detalleventa`
   ADD PRIMARY KEY (`idDetalleVenta`),
   ADD KEY `fk_DetalleVenta_Ventas` (`idVenta`),
   ADD KEY `fk_DetalleVenta_Productos` (`idProducto`),
   ADD KEY `fk_DetalleVenta_Descuentos` (`idDescuento`);
 
 --
--- Indexes for table `Domicilios`
+-- Indices de la tabla `domicilios`
 --
-ALTER TABLE `Domicilios`
+ALTER TABLE `domicilios`
   ADD PRIMARY KEY (`idDomicilio`),
   ADD KEY `c_CP` (`c_CP`);
 
 --
--- Indexes for table `Empleados`
+-- Indices de la tabla `empleados`
 --
-ALTER TABLE `Empleados`
+ALTER TABLE `empleados`
   ADD PRIMARY KEY (`idEmpleado`),
   ADD UNIQUE KEY `RFC` (`RFC`),
   ADD UNIQUE KEY `NumeroSeguroSocial` (`NumeroSeguroSocial`),
@@ -32778,460 +33575,325 @@ ALTER TABLE `Empleados`
   ADD KEY `fk_Empleados_Personas` (`idPersona`);
 
 --
--- Indexes for table `Estado`
+-- Indices de la tabla `estado`
 --
-ALTER TABLE `Estado`
+ALTER TABLE `estado`
   ADD PRIMARY KEY (`c_estado`),
   ADD UNIQUE KEY `d_Estado` (`d_Estado`),
   ADD KEY `id_Pais` (`id_Pais`);
 
 --
--- Indexes for table `Finanzas`
+-- Indices de la tabla `finanzas`
 --
-ALTER TABLE `Finanzas`
+ALTER TABLE `finanzas`
   ADD PRIMARY KEY (`idFinanza`),
   ADD KEY `fk_Finanzas_Ventas` (`idVenta`);
 
 --
--- Indexes for table `HistorialModificaciones`
+-- Indices de la tabla `historialmodificaciones`
 --
-ALTER TABLE `HistorialModificaciones`
+ALTER TABLE `historialmodificaciones`
   ADD PRIMARY KEY (`idHistorial`),
   ADD KEY `fk_Historial_Empleados` (`idEmpleado`);
 
 --
--- Indexes for table `Municipio`
+-- Indices de la tabla `municipio`
 --
-ALTER TABLE `Municipio`
+ALTER TABLE `municipio`
   ADD PRIMARY KEY (`c_mnpio`),
   ADD KEY `c_cve_ciudad` (`c_cve_ciudad`);
 
 --
--- Indexes for table `Pais`
+-- Indices de la tabla `pais`
 --
-ALTER TABLE `Pais`
+ALTER TABLE `pais`
   ADD PRIMARY KEY (`id_Pais`),
   ADD UNIQUE KEY `Nombre` (`Nombre`);
 
 --
--- Indexes for table `Pedidos`
+-- Indices de la tabla `pedidos`
 --
-ALTER TABLE `Pedidos`
+ALTER TABLE `pedidos`
   ADD PRIMARY KEY (`idPedido`),
   ADD KEY `fk_Pedidos_Clientes` (`idCliente`),
   ADD KEY `fk_Pedidos_Empleados` (`idEmpleado`);
 
 --
--- Indexes for table `Personas`
+-- Indices de la tabla `personas`
 --
-ALTER TABLE `Personas`
+ALTER TABLE `personas`
   ADD PRIMARY KEY (`idPersona`),
   ADD UNIQUE KEY `Telefono` (`Telefono`),
   ADD UNIQUE KEY `Email` (`Email`),
   ADD KEY `fk_Clientes_Domicilios` (`idDomicilio`);
 
 --
--- Indexes for table `Productos`
+-- Indices de la tabla `productos`
 --
-ALTER TABLE `Productos`
+ALTER TABLE `productos`
   ADD PRIMARY KEY (`idProducto`),
   ADD UNIQUE KEY `CodigoBarras` (`CodigoBarras`),
   ADD KEY `fk_Productos_Categorias` (`idCategoria`),
   ADD KEY `fk_Productos_Proveedores` (`idProveedor`);
 
 --
--- Indexes for table `Proveedores`
+-- Indices de la tabla `proveedores`
 --
-ALTER TABLE `Proveedores`
+ALTER TABLE `proveedores`
   ADD PRIMARY KEY (`idProveedor`);
 
 --
--- Indexes for table `Temp_Ventas`
+-- Indices de la tabla `temp_ventas`
 --
-ALTER TABLE `Temp_Ventas`
+ALTER TABLE `temp_ventas`
   ADD PRIMARY KEY (`idEmpleado`,`idProducto`),
   ADD KEY `idProducto` (`idProducto`);
 
 --
--- Indexes for table `Ventas`
+-- Indices de la tabla `ventas`
 --
-ALTER TABLE `Ventas`
+ALTER TABLE `ventas`
   ADD PRIMARY KEY (`idVenta`),
   ADD KEY `fk_Ventas_Clientes` (`idCliente`),
   ADD KEY `fk_Ventas_Empleados` (`idEmpleado`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- AUTO_INCREMENT de las tablas volcadas
 --
 
 --
--- AUTO_INCREMENT for table `Asentamiento`
+-- AUTO_INCREMENT de la tabla `asentamiento`
 --
-ALTER TABLE `Asentamiento`
-  MODIFY `c_tipo_asenta` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20510;
+ALTER TABLE `asentamiento`
+  MODIFY `c_tipo_asenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20510;
 
 --
--- AUTO_INCREMENT for table `Categorias`
+-- AUTO_INCREMENT de la tabla `categorias`
 --
-ALTER TABLE `Categorias`
-  MODIFY `idCategoria` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+ALTER TABLE `categorias`
+  MODIFY `idCategoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
--- AUTO_INCREMENT for table `Ciudad`
+-- AUTO_INCREMENT de la tabla `ciudad`
 --
-ALTER TABLE `Ciudad`
-  MODIFY `c_cve_ciudad` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `ciudad`
+  MODIFY `c_cve_ciudad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `Clientes`
+-- AUTO_INCREMENT de la tabla `clientes`
 --
-ALTER TABLE `Clientes`
-  MODIFY `idCliente` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `clientes`
+  MODIFY `idCliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
--- AUTO_INCREMENT for table `CodigosPostales`
+-- AUTO_INCREMENT de la tabla `codigospostales`
 --
-ALTER TABLE `CodigosPostales`
-  MODIFY `c_CP` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10256;
+ALTER TABLE `codigospostales`
+  MODIFY `c_CP` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10256;
 
 --
--- AUTO_INCREMENT for table `Descuentos`
+-- AUTO_INCREMENT de la tabla `descuentos`
 --
-ALTER TABLE `Descuentos`
-  MODIFY `idDescuento` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `descuentos`
+  MODIFY `idDescuento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- AUTO_INCREMENT for table `DetallePedidos`
+-- AUTO_INCREMENT de la tabla `detallepedidos`
 --
-ALTER TABLE `DetallePedidos`
-  MODIFY `idDetallePedido` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `detallepedidos`
+  MODIFY `idDetallePedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
--- AUTO_INCREMENT for table `DetalleVenta`
+-- AUTO_INCREMENT de la tabla `detalleventa`
 --
-ALTER TABLE `DetalleVenta`
-  MODIFY `idDetalleVenta` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `detalleventa`
+  MODIFY `idDetalleVenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
--- AUTO_INCREMENT for table `Domicilios`
+-- AUTO_INCREMENT de la tabla `domicilios`
 --
-ALTER TABLE `Domicilios`
-  MODIFY `idDomicilio` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+ALTER TABLE `domicilios`
+  MODIFY `idDomicilio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `Empleados`
+-- AUTO_INCREMENT de la tabla `empleados`
 --
-ALTER TABLE `Empleados`
-  MODIFY `idEmpleado` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `empleados`
+  MODIFY `idEmpleado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
--- AUTO_INCREMENT for table `Estado`
+-- AUTO_INCREMENT de la tabla `estado`
 --
-ALTER TABLE `Estado`
-  MODIFY `c_estado` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `estado`
+  MODIFY `c_estado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `Finanzas`
+-- AUTO_INCREMENT de la tabla `finanzas`
 --
-ALTER TABLE `Finanzas`
-  MODIFY `idFinanza` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+ALTER TABLE `finanzas`
+  MODIFY `idFinanza` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT for table `HistorialModificaciones`
+-- AUTO_INCREMENT de la tabla `historialmodificaciones`
 --
-ALTER TABLE `HistorialModificaciones`
-  MODIFY `idHistorial` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
+ALTER TABLE `historialmodificaciones`
+  MODIFY `idHistorial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
--- AUTO_INCREMENT for table `Municipio`
+-- AUTO_INCREMENT de la tabla `municipio`
 --
-ALTER TABLE `Municipio`
-  MODIFY `c_mnpio` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+ALTER TABLE `municipio`
+  MODIFY `c_mnpio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
--- AUTO_INCREMENT for table `Pais`
+-- AUTO_INCREMENT de la tabla `pais`
 --
-ALTER TABLE `Pais`
-  MODIFY `id_Pais` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `pais`
+  MODIFY `id_Pais` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `Pedidos`
+-- AUTO_INCREMENT de la tabla `pedidos`
 --
-ALTER TABLE `Pedidos`
-  MODIFY `idPedido` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+ALTER TABLE `pedidos`
+  MODIFY `idPedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
--- AUTO_INCREMENT for table `Personas`
+-- AUTO_INCREMENT de la tabla `personas`
 --
-ALTER TABLE `Personas`
-  MODIFY `idPersona` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `personas`
+  MODIFY `idPersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
--- AUTO_INCREMENT for table `Productos`
+-- AUTO_INCREMENT de la tabla `productos`
 --
-ALTER TABLE `Productos`
-  MODIFY `idProducto` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `productos`
+  MODIFY `idProducto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=282;
 
 --
--- AUTO_INCREMENT for table `Proveedores`
+-- AUTO_INCREMENT de la tabla `proveedores`
 --
-ALTER TABLE `Proveedores`
-  MODIFY `idProveedor` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `proveedores`
+  MODIFY `idProveedor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `Ventas`
+-- AUTO_INCREMENT de la tabla `ventas`
 --
-ALTER TABLE `Ventas`
-  MODIFY `idVenta` int NOT NULL AUTO_INCREMENT;
+ALTER TABLE `ventas`
+  MODIFY `idVenta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
--- --------------------------------------------------------
-
---
--- Structure for view `vistaarticulosimplificado`
---
-DROP TABLE IF EXISTS `vistaarticulosimplificado`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaarticulosimplificado`  AS SELECT `productos`.`Nombre` AS `Nombre`, `productos`.`Stock` AS `Cantidad`, `productos`.`PrecioVenta` AS `Precio` FROM `productos` ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaclientesactivos`
---
-DROP TABLE IF EXISTS `vistaclientesactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaclientesactivos`  AS SELECT `c`.`idCliente` AS `idCliente`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Email` AS `Email`, `p`.`Telefono` AS `Telefono`, `c`.`Credito` AS `Credito`, `c`.`Limite` AS `Limite`, `d`.`Categoria` AS `TipoCliente` FROM ((`clientes` `c` join `personas` `p` on((`c`.`idPersona` = `p`.`idPersona`))) left join `descuentos` `d` on((`c`.`idDescuento` = `d`.`idDescuento`))) WHERE (`p`.`Estatus` = 'Activo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaclientesinactivos`
---
-DROP TABLE IF EXISTS `vistaclientesinactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaclientesinactivos`  AS SELECT `c`.`idCliente` AS `idCliente`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Email` AS `Email`, `p`.`Telefono` AS `Telefono`, `c`.`Credito` AS `Credito`, `c`.`Limite` AS `Limite`, `d`.`Categoria` AS `TipoCliente` FROM ((`clientes` `c` join `personas` `p` on((`c`.`idPersona` = `p`.`idPersona`))) left join `descuentos` `d` on((`c`.`idDescuento` = `d`.`idDescuento`))) WHERE (`p`.`Estatus` = 'Inactivo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaempleadosactivos`
---
-DROP TABLE IF EXISTS `vistaempleadosactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaempleadosactivos`  AS SELECT `e`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Telefono` AS `Telefono`, `p`.`Email` AS `Email`, `p`.`Edad` AS `Edad`, `p`.`Sexo` AS `Sexo`, `p`.`idDomicilio` AS `idDomicilio`, `e`.`Puesto` AS `Puesto`, `e`.`RFC` AS `RFC`, `e`.`NumeroSeguroSocial` AS `NumeroSeguroSocial`, `e`.`Usuario` AS `Usuario` FROM (`empleados` `e` join `personas` `p` on((`e`.`idPersona` = `p`.`idPersona`))) WHERE (`p`.`Estatus` = 'Activo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaempleadosinactivos`
---
-DROP TABLE IF EXISTS `vistaempleadosinactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaempleadosinactivos`  AS SELECT `e`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Nombre`, `p`.`Paterno` AS `Paterno`, `p`.`Materno` AS `Materno`, `p`.`Telefono` AS `Telefono`, `p`.`Email` AS `Email`, `p`.`Edad` AS `Edad`, `p`.`Sexo` AS `Sexo`, `p`.`idDomicilio` AS `idDomicilio`, `e`.`Puesto` AS `Puesto`, `e`.`RFC` AS `RFC`, `e`.`NumeroSeguroSocial` AS `NumeroSeguroSocial`, `e`.`Usuario` AS `Usuario` FROM (`empleados` `e` join `personas` `p` on((`e`.`idPersona` = `p`.`idPersona`))) WHERE (`p`.`Estatus` = 'Inactivo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaobtenercarritoporempleado`
---
-DROP TABLE IF EXISTS `vistaobtenercarritoporempleado`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaobtenercarritoporempleado`  AS SELECT `t`.`idEmpleado` AS `idEmpleado`, `p`.`Nombre` AS `Producto`, `t`.`Cantidad` AS `Cantidad`, (`p`.`PrecioVenta` * `t`.`Cantidad`) AS `Total` FROM (`temp_ventas` `t` join `productos` `p` on((`t`.`idProducto` = `p`.`idProducto`))) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistapedidosaceptados`
---
-DROP TABLE IF EXISTS `vistapedidosaceptados`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosaceptados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on((`p`.`idCliente` = `cl`.`idCliente`))) join `personas` `clp` on((`cl`.`idPersona` = `clp`.`idPersona`))) left join `empleados` `e` on((`p`.`idEmpleado` = `e`.`idEmpleado`))) left join `personas` `epl` on((`e`.`idPersona` = `epl`.`idPersona`))) join `detallepedidos` `dp` on((`p`.`idPedido` = `dp`.`idPedido`))) join `productos` `prod` on((`dp`.`idProducto` = `prod`.`idProducto`))) WHERE (`p`.`Estatus` = 'Aceptado') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistapedidoscanselados`
---
-DROP TABLE IF EXISTS `vistapedidoscanselados`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidoscanselados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on((`p`.`idCliente` = `cl`.`idCliente`))) join `personas` `clp` on((`cl`.`idPersona` = `clp`.`idPersona`))) left join `empleados` `e` on((`p`.`idEmpleado` = `e`.`idEmpleado`))) left join `personas` `epl` on((`e`.`idPersona` = `epl`.`idPersona`))) join `detallepedidos` `dp` on((`p`.`idPedido` = `dp`.`idPedido`))) join `productos` `prod` on((`dp`.`idProducto` = `prod`.`idProducto`))) WHERE (`p`.`Estatus` = 'Cancelado') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistapedidosconproductos`
---
-DROP TABLE IF EXISTS `vistapedidosconproductos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosconproductos`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on((`p`.`idCliente` = `cl`.`idCliente`))) join `personas` `clp` on((`cl`.`idPersona` = `clp`.`idPersona`))) left join `empleados` `e` on((`p`.`idEmpleado` = `e`.`idEmpleado`))) left join `personas` `epl` on((`e`.`idPersona` = `epl`.`idPersona`))) join `detallepedidos` `dp` on((`p`.`idPedido` = `dp`.`idPedido`))) join `productos` `prod` on((`dp`.`idProducto` = `prod`.`idProducto`))) WHERE (`p`.`Estatus` in ('Pendiente','Aceptado','Enviado','Cancelado')) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistapedidosenviados`
---
-DROP TABLE IF EXISTS `vistapedidosenviados`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidosenviados`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on((`p`.`idCliente` = `cl`.`idCliente`))) join `personas` `clp` on((`cl`.`idPersona` = `clp`.`idPersona`))) left join `empleados` `e` on((`p`.`idEmpleado` = `e`.`idEmpleado`))) left join `personas` `epl` on((`e`.`idPersona` = `epl`.`idPersona`))) join `detallepedidos` `dp` on((`p`.`idPedido` = `dp`.`idPedido`))) join `productos` `prod` on((`dp`.`idProducto` = `prod`.`idProducto`))) WHERE (`p`.`Estatus` = 'Enviado') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistapedidospendientes`
---
-DROP TABLE IF EXISTS `vistapedidospendientes`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistapedidospendientes`  AS SELECT `p`.`idPedido` AS `idPedido`, `p`.`Fecha` AS `Fecha`, `p`.`Hora` AS `Hora`, `p`.`Estatus` AS `Estatus`, `p`.`idCliente` AS `idCliente`, `clp`.`Nombre` AS `NombreCliente`, `p`.`idEmpleado` AS `idEmpleado`, `epl`.`Nombre` AS `NombreEmpleado`, `dp`.`idDetallePedido` AS `idDetallePedido`, `dp`.`idProducto` AS `idProducto`, `prod`.`Nombre` AS `NombreProducto`, `dp`.`Cantidad` AS `Cantidad`, `dp`.`PrecioUnitario` AS `PrecioUnitario`, `dp`.`Subtotal` AS `Subtotal` FROM ((((((`pedidos` `p` join `clientes` `cl` on((`p`.`idCliente` = `cl`.`idCliente`))) join `personas` `clp` on((`cl`.`idPersona` = `clp`.`idPersona`))) left join `empleados` `e` on((`p`.`idEmpleado` = `e`.`idEmpleado`))) left join `personas` `epl` on((`e`.`idPersona` = `epl`.`idPersona`))) join `detallepedidos` `dp` on((`p`.`idPedido` = `dp`.`idPedido`))) join `productos` `prod` on((`dp`.`idProducto` = `prod`.`idProducto`))) WHERE (`p`.`Estatus` = 'Pendiente') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaproductosactivos`
---
-DROP TABLE IF EXISTS `vistaproductosactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaproductosactivos`  AS SELECT `p`.`idProducto` AS `idProducto`, `p`.`Nombre` AS `Producto`, `c`.`Nombre` AS `Categoria`, `pr`.`Nombre` AS `Proveedor`, `p`.`Stock` AS `Stock`, `p`.`PrecioCompra` AS `PrecioCompra`, `p`.`PrecioVenta` AS `PrecioVenta`, `p`.`Estado` AS `Estado` FROM ((`productos` `p` join `categorias` `c` on((`p`.`idCategoria` = `c`.`idCategoria`))) join `proveedores` `pr` on((`p`.`idProveedor` = `pr`.`idProveedor`))) WHERE (`p`.`Estado` = 'Activo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaproductosinactivos`
---
-DROP TABLE IF EXISTS `vistaproductosinactivos`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaproductosinactivos`  AS SELECT `p`.`idProducto` AS `idProducto`, `p`.`Nombre` AS `Producto`, `c`.`Nombre` AS `Categoria`, `pr`.`Nombre` AS `Proveedor`, `p`.`Stock` AS `Stock`, `p`.`PrecioCompra` AS `PrecioCompra`, `p`.`PrecioVenta` AS `PrecioVenta`, `p`.`Estado` AS `Estado` FROM ((`productos` `p` join `categorias` `c` on((`p`.`idCategoria` = `c`.`idCategoria`))) join `proveedores` `pr` on((`p`.`idProveedor` = `pr`.`idProveedor`))) WHERE (`p`.`Estado` = 'Inactivo') ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vistaventasdiarias`
---
-DROP TABLE IF EXISTS `vistaventasdiarias`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vistaventasdiarias`  AS SELECT `v`.`idVenta` AS `NumeroVenta`, cast(`v`.`Fecha` as date) AS `Fecha`, cast(`v`.`Fecha` as time) AS `Hora`, concat(`emp`.`Nombre`,' ',`emp`.`Paterno`,' ',`emp`.`Materno`) AS `Empleado`, concat(`cli`.`Nombre`,' ',`cli`.`Paterno`,' ',`cli`.`Materno`) AS `Cliente`, `p`.`Nombre` AS `Producto`, `dv`.`Cantidad` AS `Cantidad`, (`dv`.`Total` / `dv`.`Cantidad`) AS `PrecioUnitario`, `dv`.`Total` AS `Subtotal`, `dv`.`IVA` AS `IVA`, `dv`.`IEPS` AS `IEPS`, ifnull(`dv`.`idDescuento`,0) AS `Descuento`, `v`.`Monto` AS `TotalVenta`, `v`.`TipoPago` AS `TipoPago`, `v`.`Estatus` AS `Estatus` FROM ((((((`ventas` `v` join `detalleventa` `dv` on((`v`.`idVenta` = `dv`.`idVenta`))) join `productos` `p` on((`dv`.`idProducto` = `p`.`idProducto`))) join `empleados` `e` on((`v`.`idEmpleado` = `e`.`idEmpleado`))) join `personas` `emp` on((`e`.`idPersona` = `emp`.`idPersona`))) join `clientes` `c` on((`v`.`idCliente` = `c`.`idCliente`))) join `personas` `cli` on((`c`.`idPersona` = `cli`.`idPersona`))) ;
-
--- --------------------------------------------------------
-
---
--- Structure for view `vista_todos_proveedores`
---
-DROP TABLE IF EXISTS `vista_todos_proveedores`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `vista_todos_proveedores`  AS SELECT `proveedores`.`idProveedor` AS `idProveedor`, `proveedores`.`Nombre` AS `Nombre` FROM `proveedores` ;
-
 --
--- Constraints for dumped tables
+-- Restricciones para tablas volcadas
 --
 
 --
--- Constraints for table `Asentamiento`
+-- Filtros para la tabla `asentamiento`
 --
-ALTER TABLE `Asentamiento`
-  ADD CONSTRAINT `asentamiento_ibfk_1` FOREIGN KEY (`c_mnpio`) REFERENCES `Municipio` (`c_mnpio`);
+ALTER TABLE `asentamiento`
+  ADD CONSTRAINT `asentamiento_ibfk_1` FOREIGN KEY (`c_mnpio`) REFERENCES `municipio` (`c_mnpio`);
 
 --
--- Constraints for table `Ciudad`
+-- Filtros para la tabla `ciudad`
 --
-ALTER TABLE `Ciudad`
-  ADD CONSTRAINT `ciudad_ibfk_1` FOREIGN KEY (`c_estado`) REFERENCES `Estado` (`c_estado`);
+ALTER TABLE `ciudad`
+  ADD CONSTRAINT `ciudad_ibfk_1` FOREIGN KEY (`c_estado`) REFERENCES `estado` (`c_estado`);
 
 --
--- Constraints for table `Clientes`
+-- Filtros para la tabla `clientes`
 --
-ALTER TABLE `Clientes`
-  ADD CONSTRAINT `fk_Clientes_Herreros` FOREIGN KEY (`idDescuento`) REFERENCES `Descuentos` (`idDescuento`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_Clientes_Personas` FOREIGN KEY (`idPersona`) REFERENCES `Personas` (`idPersona`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `clientes`
+  ADD CONSTRAINT `fk_Clientes_Herreros` FOREIGN KEY (`idDescuento`) REFERENCES `descuentos` (`idDescuento`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_Clientes_Personas` FOREIGN KEY (`idPersona`) REFERENCES `personas` (`idPersona`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `CodigosPostales`
+-- Filtros para la tabla `codigospostales`
 --
-ALTER TABLE `CodigosPostales`
-  ADD CONSTRAINT `codigospostales_ibfk_1` FOREIGN KEY (`c_tipo_asenta`) REFERENCES `Asentamiento` (`c_tipo_asenta`);
+ALTER TABLE `codigospostales`
+  ADD CONSTRAINT `codigospostales_ibfk_1` FOREIGN KEY (`c_tipo_asenta`) REFERENCES `asentamiento` (`c_tipo_asenta`);
 
 --
--- Constraints for table `DetallePedidos`
+-- Filtros para la tabla `detallepedidos`
 --
-ALTER TABLE `DetallePedidos`
-  ADD CONSTRAINT `fk_DetallePedidos_Pedidos` FOREIGN KEY (`idPedido`) REFERENCES `Pedidos` (`idPedido`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_DetallePedidos_Productos` FOREIGN KEY (`idProducto`) REFERENCES `Productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `detallepedidos`
+  ADD CONSTRAINT `fk_DetallePedidos_Pedidos` FOREIGN KEY (`idPedido`) REFERENCES `pedidos` (`idPedido`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_DetallePedidos_Productos` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `DetalleVenta`
+-- Filtros para la tabla `detalleventa`
 --
-ALTER TABLE `DetalleVenta`
-  ADD CONSTRAINT `fk_DetalleVenta_Descuentos` FOREIGN KEY (`idDescuento`) REFERENCES `Descuentos` (`idDescuento`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_DetalleVenta_Productos` FOREIGN KEY (`idProducto`) REFERENCES `Productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_DetalleVenta_Ventas` FOREIGN KEY (`idVenta`) REFERENCES `Ventas` (`idVenta`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `detalleventa`
+  ADD CONSTRAINT `fk_DetalleVenta_Descuentos` FOREIGN KEY (`idDescuento`) REFERENCES `descuentos` (`idDescuento`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_DetalleVenta_Productos` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_DetalleVenta_Ventas` FOREIGN KEY (`idVenta`) REFERENCES `ventas` (`idVenta`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `Domicilios`
+-- Filtros para la tabla `domicilios`
 --
-ALTER TABLE `Domicilios`
-  ADD CONSTRAINT `domicilios_ibfk_1` FOREIGN KEY (`c_CP`) REFERENCES `CodigosPostales` (`c_CP`);
+ALTER TABLE `domicilios`
+  ADD CONSTRAINT `domicilios_ibfk_1` FOREIGN KEY (`c_CP`) REFERENCES `codigospostales` (`c_CP`);
 
 --
--- Constraints for table `Empleados`
+-- Filtros para la tabla `empleados`
 --
-ALTER TABLE `Empleados`
-  ADD CONSTRAINT `fk_Empleados_Personas` FOREIGN KEY (`idPersona`) REFERENCES `Personas` (`idPersona`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `empleados`
+  ADD CONSTRAINT `fk_Empleados_Personas` FOREIGN KEY (`idPersona`) REFERENCES `personas` (`idPersona`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `Estado`
+-- Filtros para la tabla `estado`
 --
-ALTER TABLE `Estado`
-  ADD CONSTRAINT `estado_ibfk_1` FOREIGN KEY (`id_Pais`) REFERENCES `Pais` (`id_Pais`);
+ALTER TABLE `estado`
+  ADD CONSTRAINT `estado_ibfk_1` FOREIGN KEY (`id_Pais`) REFERENCES `pais` (`id_Pais`);
 
 --
--- Constraints for table `Finanzas`
+-- Filtros para la tabla `finanzas`
 --
-ALTER TABLE `Finanzas`
-  ADD CONSTRAINT `fk_Finanzas_Ventas` FOREIGN KEY (`idVenta`) REFERENCES `Ventas` (`idVenta`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `finanzas`
+  ADD CONSTRAINT `fk_Finanzas_Ventas` FOREIGN KEY (`idVenta`) REFERENCES `ventas` (`idVenta`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `HistorialModificaciones`
+-- Filtros para la tabla `historialmodificaciones`
 --
-ALTER TABLE `HistorialModificaciones`
-  ADD CONSTRAINT `fk_Historial_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `Empleados` (`idEmpleado`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `historialmodificaciones`
+  ADD CONSTRAINT `fk_Historial_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `empleados` (`idEmpleado`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `Municipio`
+-- Filtros para la tabla `municipio`
 --
-ALTER TABLE `Municipio`
-  ADD CONSTRAINT `municipio_ibfk_1` FOREIGN KEY (`c_cve_ciudad`) REFERENCES `Ciudad` (`c_cve_ciudad`);
+ALTER TABLE `municipio`
+  ADD CONSTRAINT `municipio_ibfk_1` FOREIGN KEY (`c_cve_ciudad`) REFERENCES `ciudad` (`c_cve_ciudad`);
 
 --
--- Constraints for table `Pedidos`
+-- Filtros para la tabla `pedidos`
 --
-ALTER TABLE `Pedidos`
-  ADD CONSTRAINT `fk_Pedidos_Clientes` FOREIGN KEY (`idCliente`) REFERENCES `Clientes` (`idCliente`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_Pedidos_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `Empleados` (`idEmpleado`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `pedidos`
+  ADD CONSTRAINT `fk_Pedidos_Clientes` FOREIGN KEY (`idCliente`) REFERENCES `clientes` (`idCliente`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_Pedidos_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `empleados` (`idEmpleado`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
--- Constraints for table `Personas`
+-- Filtros para la tabla `personas`
 --
-ALTER TABLE `Personas`
-  ADD CONSTRAINT `fk_Clientes_Domicilios` FOREIGN KEY (`idDomicilio`) REFERENCES `Domicilios` (`idDomicilio`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `personas`
+  ADD CONSTRAINT `fk_Clientes_Domicilios` FOREIGN KEY (`idDomicilio`) REFERENCES `domicilios` (`idDomicilio`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `Productos`
+-- Filtros para la tabla `productos`
 --
-ALTER TABLE `Productos`
-  ADD CONSTRAINT `fk_Productos_Categorias` FOREIGN KEY (`idCategoria`) REFERENCES `Categorias` (`idCategoria`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_Productos_Proveedores` FOREIGN KEY (`idProveedor`) REFERENCES `Proveedores` (`idProveedor`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `productos`
+  ADD CONSTRAINT `fk_Productos_Categorias` FOREIGN KEY (`idCategoria`) REFERENCES `categorias` (`idCategoria`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_Productos_Proveedores` FOREIGN KEY (`idProveedor`) REFERENCES `proveedores` (`idProveedor`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `Temp_Ventas`
+-- Filtros para la tabla `temp_ventas`
 --
-ALTER TABLE `Temp_Ventas`
-  ADD CONSTRAINT `temp_ventas_ibfk_1` FOREIGN KEY (`idEmpleado`) REFERENCES `Empleados` (`idEmpleado`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `temp_ventas_ibfk_2` FOREIGN KEY (`idProducto`) REFERENCES `Productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `temp_ventas`
+  ADD CONSTRAINT `temp_ventas_ibfk_1` FOREIGN KEY (`idEmpleado`) REFERENCES `empleados` (`idEmpleado`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `temp_ventas_ibfk_2` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON UPDATE CASCADE;
 
 --
--- Constraints for table `Ventas`
+-- Filtros para la tabla `ventas`
 --
-ALTER TABLE `Ventas`
-  ADD CONSTRAINT `fk_Ventas_Clientes` FOREIGN KEY (`idCliente`) REFERENCES `Clientes` (`idCliente`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_Ventas_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `Empleados` (`idEmpleado`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ventas`
+  ADD CONSTRAINT `fk_Ventas_Clientes` FOREIGN KEY (`idCliente`) REFERENCES `clientes` (`idCliente`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_Ventas_Empleados` FOREIGN KEY (`idEmpleado`) REFERENCES `empleados` (`idEmpleado`) ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
